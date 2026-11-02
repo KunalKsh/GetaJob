@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block title %}{{ title }} · {{ APP_NAME }}{% endblock %}
+{% block mainclass %}narrow{% endblock %}
+{% block content %}
+<div class="panel authbox">
+  <h1>{{ title }}</h1>
+  <p>{{ message }}</p>
+  {% if link %}<a class="btn" href="{{ link[0] }}">{{ link[1] }}</a>{% else %}<a class="btn quiet" href="{{ '/dashboard' if user else '/' }}">{{ 'Back to dashboard' if user else 'Home' }}</a>{% endif %}
+</div>
+{% endblock %}

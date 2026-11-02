@@ -1,0 +1,13 @@
+.env
+data/
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
+venv/
+*.pdf
+*.eml
+*.mbox
+!fixtures/alerts/*.eml
+*.db
+secret.key

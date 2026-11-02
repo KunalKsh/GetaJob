@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% from "_card.html" import card with context %}
+{% block title %}Needs review · {{ APP_NAME }}{% endblock %}
+{% block content %}
+<div>
+  <h1>Needs review</h1>
+  <p class="muted">These postings are in your cities but aren't counted in the top 100 yet. Open one, and if it's live, mark it as verified. Add the posted date when the site didn't give one.</p>
+</div>
+<div class="chips">
+  <a class="chip {{ 'on' if show=='date' }}" href="/review?show=date">Date unverified · {{ groups.date }}</a>
+  <a class="chip {{ 'on' if show=='check' }}" href="/review?show=check">Couldn't verify / needs review · {{ groups.check }}</a>
+  <a class="chip {{ 'on' if show=='expired' }}" href="/review?show=expired">Expired or dead · {{ groups.expired }}</a>
+</div>
+{% if show == 'check' %}<p class="small muted">Includes login-walled pages (LinkedIn, Instahyre), sites whose robots.txt doesn't allow checks, and pages where the title didn't match.</p>{% endif %}
+{% if show == 'expired' %}<p class="small muted">Kept for history and repost detection. Hidden everywhere else.</p>{% endif %}
+<section class="cards">
+  {% for j in rows %}{{ card(j, back="/review?show=" ~ show, review=(show != 'expired')) }}
+  {% else %}<div class="empty">Nothing here.</div>{% endfor %}
+</section>
+{% endblock %}

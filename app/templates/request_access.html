@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Request access · {{ APP_NAME }}{% endblock %}
+{% block mainclass %}narrow{% endblock %}
+{% block content %}
+{% if done %}
+<div class="panel authbox">
+  <h1>Request received</h1>
+  <p>If this email doesn't already have an account, the admin will review your request. Once approved, you'll get an invite link to create your account.</p>
+  <a class="btn quiet" href="/">Back to home</a>
+</div>
+{% else %}
+<form method="post" action="/request-access" class="panel authbox">
+  <input type="hidden" name="csrf_token" value="{{ csrf }}">
+  <h1>Request access</h1>
+  <p class="small muted">{{ APP_NAME }} is invite-only. Tell the admin who you are; you'll get an invite link once approved.</p>
+  {% if error %}<div class="notice err" role="alert">{{ error }}</div>{% endif %}
+  <label class="f" for="name">Full name<input id="name" type="text" name="name" value="{{ name or '' }}" maxlength="120" autocomplete="name" required></label>
+  <label class="f" for="email">Email<input id="email" type="email" name="email" value="{{ email or '' }}" autocomplete="email" required></label>
+  <label class="f" for="reason">What roles are you looking for? (optional)<textarea id="reason" name="reason" rows="3" maxlength="1000">{{ reason or '' }}</textarea></label>
+  <label class="hp" aria-hidden="true">Website<input type="text" name="website" tabindex="-1" autocomplete="off"></label>
+  <button class="btn big" type="submit">Send request</button>
+</form>
+{% endif %}
+{% endblock %}

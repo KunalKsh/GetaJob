@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block title %}Roles &amp; filters · {{ APP_NAME }}{% endblock %}
+{% block content %}
+<div>
+  <h1>Roles and filters</h1>
+  <p class="muted">Suggested from your resumes ({{ profile.years_experience }} years, {{ profile.skills|length }} skills). Saving re-ranks your lists straight away; new roles are searched from the next update.</p>
+</div>
+{% if msg %}<div class="notice">{{ msg }}</div>{% endif %}
+<form method="post" action="/profile" style="display:grid;gap:16px">
+  <input type="hidden" name="csrf_token" value="{{ csrf }}">
+  <section class="panel">
+    <h2>Target roles</h2>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Keep</th><th>Role</th><th>Fit</th><th>Why</th></tr></thead>
+        <tbody>
+        {% for s in suggestions %}
+          <tr>
+            <td><input type="checkbox" id="role-{{ loop.index }}" name="roles" value="{{ s.title }}" {{ 'checked' if s.title in chosen }}></td>
+            <td><label for="role-{{ loop.index }}"><b>{{ s.title }}</b></label></td>
+            <td class="num">{{ s.score }}</td>
+            <td class="small">{{ s.reason }}</td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <label class="f" for="custom_roles">Add your own roles (one per line)<textarea id="custom_roles" name="custom_roles" rows="2" placeholder="e.g. Growth Analyst">{{ custom }}</textarea></label>
+  </section>
+
+  <section class="panel">
+    <h2>Filters</h2>
+    <div class="grid3">
+      <div style="display:grid;gap:10px;align-content:start">
+        <div class="row">
+          <label class="f" for="smin">Salary from (LPA)<input id="smin" type="number" step="0.5" min="0" name="salary_min_lpa" value="{{ prefs.salary_min_lpa if prefs.salary_min_lpa is not none else '' }}" style="width:100px"></label>
+          <label class="f" for="smax">to (LPA)<input id="smax" type="number" step="0.5" min="0" name="salary_max_lpa" value="{{ prefs.salary_max_lpa if prefs.salary_max_lpa is not none else '' }}" style="width:100px"></label>
+        </div>
+        <label class="check"><input type="checkbox" name="salary_hard_filter" {{ 'checked' if prefs.salary_hard_filter }}> <span>Drop jobs whose <i>stated</i> salary is outside this range</span></label>
+        <p class="small muted" style="margin:0">Jobs without a stated salary always stay in, shown as "Salary: Unknown".</p>
+        <label class="f" for="notice">Notice period<select id="notice" name="notice_period">{% for n in notice_options %}<option {{ 'selected' if prefs.notice_period == n }}>{{ n }}</option>{% endfor %}</select></label>
+        <label class="f" for="excl">Companies to exclude (one per line)<textarea id="excl" name="exclude_companies" rows="3" placeholder="Your current employer, for example">{{ (prefs.exclude_companies or [])|join('\n') }}</textarea></label>
+        <label class="f" for="exw">Leave out titles containing<textarea id="exw" name="exclude_title_words" rows="3">{{ (prefs.exclude_title_words or [])|join('\n') }}</textarea></label>
+      </div>
+      <div style="display:grid;gap:10px;align-content:start">
+        <fieldset class="panel" style="padding:10px"><legend class="small muted">Delhi NCR cities</legend>
+          {% for c in all_cities.ncr %}<label class="check"><input type="checkbox" name="ncr_cities" value="{{ c }}" {{ 'checked' if c in prefs.ncr_cities }}> {{ c }}</label>{% endfor %}</fieldset>
+        <fieldset class="panel" style="padding:10px"><legend class="small muted">Other metros</legend>
+          {% for c in all_cities.metro %}<label class="check"><input type="checkbox" name="metro_cities" value="{{ c }}" {{ 'checked' if c in prefs.metro_cities }}> {{ c }}</label>{% endfor %}</fieldset>
+        <fieldset class="panel" style="padding:10px"><legend class="small muted">Seniority band</legend>
+          {% for o in seniority_options %}<label class="check"><input type="checkbox" name="seniority" value="{{ o }}" {{ 'checked' if o in prefs.seniority }}> {{ o }}</label>{% endfor %}</fieldset>
+        <fieldset class="panel" style="padding:10px"><legend class="small muted">Role types</legend>
+          {% for o in role_type_options %}<label class="check"><input type="checkbox" name="role_types" value="{{ o }}" {{ 'checked' if o in prefs.role_types }}> {{ o }}</label>{% endfor %}</fieldset>
+      </div>
+      <div style="display:grid;gap:10px;align-content:start">
+        <fieldset class="panel" style="padding:10px"><legend class="small muted">Prefer industries</legend>
+          {% for o in industries %}<label class="check"><input type="checkbox" name="prefer_industries" value="{{ o }}" {{ 'checked' if o in prefs.prefer_industries }}> {{ o }}</label>{% endfor %}</fieldset>
+        <fieldset class="panel" style="padding:10px"><legend class="small muted">Avoid industries</legend>
+          {% for o in industries %}<label class="check"><input type="checkbox" name="avoid_industries" value="{{ o }}" {{ 'checked' if o in prefs.avoid_industries }}> {{ o }}</label>{% endfor %}</fieldset>
+        <label class="check"><input type="checkbox" name="use_llm_summary" {{ 'checked' if prefs.use_llm_summary }}> <span>Offer short written fit summaries (only if the site has an AI key)</span></label>
+      </div>
+    </div>
+  </section>
+  <div><button class="btn big" type="submit">Save and show my jobs</button></div>
+</form>
+{% endblock %}

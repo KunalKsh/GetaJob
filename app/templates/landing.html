@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}{{ APP_NAME }} · Fresh analytics jobs matched to your resume{% endblock %}
+{% block content %}
+<section class="hero">
+  <div class="hero-text">
+    <p class="eyebrow">Invite-only · Delhi NCR and India's metros</p>
+    <h1>Fresh analytics jobs, checked and ranked against your resume.</h1>
+    <p class="lead">Upload up to five versions of your resume. {{ APP_NAME }} suggests the roles you fit, searches company career sites and job APIs, drops anything older than 30 days or no longer live, and tells you which resume to send for each job.</p>
+    <div class="row">
+      <a class="btn big" href="/request-access">Request access</a>
+      <a class="btn quiet big" href="/login">Sign in</a>
+    </div>
+  </div>
+  <ol class="steps">
+    <li><b>Upload your resumes</b><span>PDF, up to 5 versions of the same resume. Read on the server, never shared.</span></li>
+    <li><b>Confirm your roles</b><span>Suggested from your skills and experience, each with the evidence from your resume.</span></li>
+    <li><b>Get two ranked lists</b><span>Up to 50 jobs in Delhi NCR and 50 across Bengaluru, Hyderabad, Mumbai and Pune.</span></li>
+    <li><b>Apply and track</b><span>Every job opens on the company's own page. Track status, notes and follow-ups.</span></li>
+  </ol>
+</section>
+<section class="grid3">
+  <div class="panel"><h3>Only live postings</h3><p class="small muted">Every job is re-checked on each update: the link must load, the title and company must match, and "position filled" pages are dropped.</p></div>
+  <div class="panel"><h3>No guessed dates</h3><p class="small muted">If a posting date can't be confirmed, it isn't ranked. Reposted jobs are flagged so you aren't misled about freshness.</p></div>
+  <div class="panel"><h3>Explainable fit score</h3><p class="small muted">Skills, title, experience, salary, industry and location, with the matched skills and gaps shown for every job.</p></div>
+</section>
+{% endblock %}

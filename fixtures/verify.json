@@ -1,0 +1,22 @@
+{
+ "*": {
+  "status": "verified",
+  "note": "Demo data: treated as live"
+ },
+ "demoinsure:lv3": {
+  "status": "expired",
+  "note": "Demo: removed from the company's board"
+ },
+ "js2": {
+  "status": "login_required",
+  "note": "Demo: login wall instead of the job page"
+ },
+ "sp1": {
+  "status": "unverifiable",
+  "note": "Demo: robots.txt does not allow automated checks"
+ },
+ "source:alerts": {
+  "status": "login_required",
+  "note": "Demo: LinkedIn and Naukri pages need a login or block automated checks"
+ }
+}

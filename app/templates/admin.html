@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+{% block title %}Admin · {{ APP_NAME }}{% endblock %}
+{% block content %}
+<div class="row" style="justify-content:space-between;align-items:center">
+  <div><h1>Admin</h1><p class="muted" style="margin:4px 0 0">Approve access, invite people and manage the site.</p></div>
+</div>
+{% if msg %}<div class="notice">{{ msg }}{% if link %}
+  <div class="copyrow"><input type="text" readonly value="{{ link }}" id="invite-link" aria-label="Invite link"><button class="btn" type="button" data-copy="invite-link">Copy link</button></div>
+  <div class="small muted">The link works once and expires in 7 days. Send it to them by WhatsApp or email.</div>{% endif %}</div>{% endif %}
+{% if err %}<div class="notice err" role="alert">{{ err }}</div>{% endif %}
+
+<div class="chips">
+  <a class="chip {{ 'on' if tab=='requests' }}" href="/admin?tab=requests">Access requests · {{ pending|length }}</a>
+  <a class="chip {{ 'on' if tab=='users' }}" href="/admin?tab=users">People · {{ users|length }}</a>
+  <a class="chip {{ 'on' if tab=='settings' }}" href="/admin?tab=settings">Site settings</a>
+</div>
+
+{% if tab == 'requests' %}
+<section class="panel">
+  <h2>Waiting for you</h2>
+  {% if pending %}
+  <div class="tablewrap"><table>
+    <thead><tr><th>Name</th><th>Email</th><th>Looking for</th><th>Asked</th><th></th></tr></thead>
+    <tbody>{% for r in pending %}
+      <tr><td><b>{{ r.name }}</b></td><td>{{ r.email }}</td><td class="small">{{ r.reason or '–' }}</td><td class="small">{{ fmt_dt(r.created_at) }}</td>
+        <td><div class="row">
+          <form method="post" action="/admin/requests/{{ r.id }}/approve"><input type="hidden" name="csrf_token" value="{{ csrf }}"><button class="btn" type="submit">Approve</button></form>
+          <form method="post" action="/admin/requests/{{ r.id }}/decline"><input type="hidden" name="csrf_token" value="{{ csrf }}"><button class="btn quiet" type="submit">Decline</button></form>
+        </div></td></tr>{% endfor %}
+    </tbody></table></div>
+  {% else %}<div class="empty">No pending requests.</div>{% endif %}
+</section>
+<section class="panel">
+  <h2>Recent decisions</h2>
+  <div class="tablewrap"><table>
+    <thead><tr><th>Name</th><th>Email</th><th>Status</th><th>Asked</th></tr></thead>
+    <tbody>{% for r in decided if r.status != 'pending' %}
+      <tr><td>{{ r.name }}</td><td>{{ r.email }}</td><td><span class="pill {{ 'green' if r.status=='approved' else 'grey' }}">{{ r.status }}</span></td><td class="small">{{ fmt_dt(r.created_at) }}</td></tr>
+    {% else %}<tr><td colspan="4" class="muted">Nothing yet.</td></tr>{% endfor %}</tbody></table></div>
+</section>
+{% endif %}
+
+{% if tab == 'users' %}
+<form method="post" action="/admin/invite" class="panel">
+  <input type="hidden" name="csrf_token" value="{{ csrf }}">
+  <h2>Invite someone</h2>
+  <div class="row"><label class="f" for="inv-email">Email<input id="inv-email" type="email" name="email" required style="min-width:260px"></label><button class="btn" type="submit">Create invite link</button></div>
+</form>
+<section class="panel">
+  <h2>People</h2>
+  <div class="tablewrap"><table>
+    <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Status</th><th>Last sign-in</th><th>Actions</th></tr></thead>
+    <tbody>{% for u in users %}
+      <tr><td><b>{{ u.name }}</b></td><td>{{ u.email }}</td><td>{{ u.role }}</td>
+        <td><span class="pill {{ 'green' if u.status=='active' else 'red' }}">{{ u.status }}</span></td>
+        <td class="small">{{ fmt_dt(u.last_login) }}</td>
+        <td><div class="row">
+          {% set acts = [] %}
+          {% if u.id != user.id %}
+            {% if u.status == 'active' %}{% set acts = acts + [('disable','Disable')] %}{% else %}{% set acts = acts + [('enable','Enable')] %}{% endif %}
+            {% if u.role == 'admin' %}{% set acts = acts + [('demote','Remove admin')] %}{% else %}{% set acts = acts + [('make-admin','Make admin')] %}{% endif %}
+          {% endif %}
+          {% set acts = acts + [('reset','Reset link')] %}
+          {% if u.id != user.id %}{% set acts = acts + [('delete','Delete')] %}{% endif %}
+          {% for a, label in acts %}
+          <form method="post" action="/admin/users/{{ u.id }}/{{ a }}" {% if a == 'delete' %}data-confirm="Delete {{ u.email }} and all their data?"{% endif %}><input type="hidden" name="csrf_token" value="{{ csrf }}"><button class="btn quiet {{ 'danger' if a == 'delete' }}" type="submit">{{ label }}</button></form>
+          {% endfor %}
+        </div></td></tr>{% endfor %}
+    </tbody></table></div>
+</section>
+<section class="panel">
+  <h2>Recent invites</h2>
+  <div class="tablewrap"><table>
+    <thead><tr><th>Email</th><th>Created</th><th>Status</th></tr></thead>
+    <tbody>{% for i in invites %}
+      <tr><td>{{ i.email }}</td><td class="small">{{ fmt_dt(i.created_at) }}</td><td>{% if i.used_at %}<span class="pill green">used</span>{% else %}<span class="pill grey">open until {{ fmt_dt(i.expires_at) }}</span>{% endif %}</td></tr>
+    {% else %}<tr><td colspan="3" class="muted">No invites yet.</td></tr>{% endfor %}</tbody></table></div>
+</section>
+{% endif %}
+
+{% if tab == 'settings' %}
+<form method="post" action="/admin/settings" style="display:grid;gap:16px">
+  <input type="hidden" name="csrf_token" value="{{ csrf }}">
+  <section class="panel">
+    <h2>Updates</h2>
+    <div class="row">
+      <label class="check"><input type="checkbox" name="auto_refresh" {{ 'checked' if settings.auto_refresh }}> Update jobs automatically</label>
+      <label class="f" for="rh">Every (hours)<input id="rh" type="number" name="refresh_hours" min="1" max="168" value="{{ settings.refresh_hours }}" style="width:90px"></label>
+      <label class="f" for="gh">Google-Jobs APIs every (hours)<input id="gh" type="number" name="google_jobs_every_hours" min="1" value="{{ settings.google_jobs_every_hours }}" style="width:90px"></label>
+      <label class="f" for="vl">Max postings checked per update<input id="vl" type="number" name="verify_limit" min="50" value="{{ settings.verify_limit }}" style="width:100px"></label>
+      <label class="f" for="mq">Roles searched (most requested first)<input id="mq" type="number" name="max_query_roles" min="1" max="40" value="{{ settings.max_query_roles }}" style="width:90px"></label>
+      <label class="f" for="ma">Max age (days)<input id="ma" type="number" name="max_age_days" min="1" max="60" value="{{ settings.max_age_days }}" style="width:90px"></label>
+      <label class="f" for="bs">Jobs per list<input id="bs" type="number" name="bucket_size" min="5" max="200" value="{{ settings.bucket_size }}" style="width:90px"></label>
+    </div>
+    <p class="small muted" style="margin:0">{% if cron_on %}Scheduled updates also arrive through /api/cron/refresh (CRON_SECRET is set).{% else %}CRON_SECRET isn't set, so only the in-app timer runs. On a free host that sleeps, set CRON_SECRET and the GitHub Action.{% endif %}</p>
+    <div class="row">{% for k, label in [('adzuna','Adzuna'),('jooble','Jooble'),('jsearch','JSearch'),('serpapi','SerpAPI')] %}
+      <label class="f" for="b-{{ k }}">{{ label }} queries/update<input id="b-{{ k }}" type="number" name="budget_{{ k }}" min="0" value="{{ settings.api_budget[k] }}" style="width:90px"></label>{% endfor %}</div>
+    <div class="chips">{% for name, ok in keys.items() %}<span class="pill {{ 'green' if ok else 'grey' }}">{{ name }}: {{ 'configured' if ok else 'not configured' }}</span>{% endfor %}</div>
+    <p class="small muted" style="margin:0">Keys are environment variables on the server (Render → Environment). They are never shown here.</p>
+    <label class="check"><input type="checkbox" name="demo_mode" {{ 'checked' if settings.demo_mode }}> Demo mode: everyone sees fictional sample data instead of real searches</label>
+  </section>
+  <section class="panel">
+    <h2>Companies searched directly</h2>
+    <p class="small muted" style="margin:0">Public job boards for these companies are read on every update.</p>
+    <textarea name="employers_yaml" rows="18" class="mono" aria-label="Company list (YAML)">{{ employers_text }}</textarea>
+  </section>
+  <div><button class="btn big" type="submit">Save settings</button></div>
+</form>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Reset password' if reset else 'Create your account' }} · {{ APP_NAME }}{% endblock %}
+{% block mainclass %}narrow{% endblock %}
+{% block content %}
+<form method="post" action="/invite/{{ token }}" class="panel authbox">
+  <input type="hidden" name="csrf_token" value="{{ csrf }}">
+  <h1>{{ 'Set a new password' if reset else ('Set up the admin account' if inv.purpose == 'setup' else 'Create your account') }}</h1>
+  <p class="small muted">For <b>{{ inv.email }}</b>. This link works once.</p>
+  {% if error %}<div class="notice err" role="alert">{{ error }}</div>{% endif %}
+  {% if not reset %}<label class="f" for="name">Full name<input id="name" type="text" name="name" value="{{ name or '' }}" maxlength="120" autocomplete="name" required></label>{% endif %}
+  <label class="f" for="password">Password (at least 10 characters)<input id="password" type="password" name="password" autocomplete="new-password" minlength="10" required></label>
+  <label class="f" for="confirm">Repeat password<input id="confirm" type="password" name="confirm" autocomplete="new-password" minlength="10" required></label>
+  <button class="btn big" type="submit">{{ 'Save password' if reset else 'Create account' }}</button>
+</form>
+{% endblock %}

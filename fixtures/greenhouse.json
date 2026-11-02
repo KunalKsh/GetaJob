@@ -1,0 +1,56 @@
+{
+ "demofin": {
+  "jobs": [
+   {
+    "id": 101,
+    "title": "Senior Product Analyst",
+    "location": {
+     "name": "Gurugram, Haryana, India"
+    },
+    "first_published": "{{days_ago:1}}",
+    "absolute_url": "https://example.com/demofin/jobs/101",
+    "content": "&lt;p&gt;Join our lending team to analyse funnels, conversion and retention across our credit products. You will own metrics, build dashboards and run deep dives with product and business teams.&lt;br&gt;&lt;br&gt;Requirements&lt;br&gt;• 2-5 years of experience in analytics&lt;br&gt;• Strong SQL and Python (Pandas)&lt;br&gt;• Power BI or Tableau dashboards&lt;br&gt;• A/B testing and statistics&lt;br&gt;• Stakeholder management and data storytelling&lt;br&gt;&lt;br&gt;Nice to have&lt;br&gt;• BigQuery or Snowflake&lt;br&gt;• dbt&lt;br&gt;&lt;/p&gt;"
+   },
+   {
+    "id": 102,
+    "title": "Business Analyst - Lending",
+    "location": {
+     "name": "Noida, Uttar Pradesh"
+    },
+    "first_published": "{{days_ago:5}}",
+    "absolute_url": "https://example.com/demofin/jobs/102",
+    "content": "Work with the payments and lending business to build KPI frameworks and MIS reporting. You will own metrics, build dashboards and run deep dives with product and business teams.\n\nRequirements\n• 3-6 years of experience in analytics\n• Strong SQL and Python (Pandas)\n• Power BI or Tableau dashboards\n• A/B testing and statistics\n• Stakeholder management and data storytelling\n\nNice to have\n• BigQuery or Snowflake\n• dbt\n"
+   },
+   {
+    "id": 103,
+    "title": "Data Engineer",
+    "location": {
+     "name": "Gurugram"
+    },
+    "first_published": "{{days_ago:2}}",
+    "absolute_url": "https://example.com/demofin/jobs/103",
+    "content": "Build pipelines in Spark."
+   },
+   {
+    "id": 104,
+    "title": "Senior Data Analyst",
+    "location": {
+     "name": "Bengaluru, Karnataka"
+    },
+    "first_published": "{{days_ago:10}}",
+    "absolute_url": "https://example.com/demofin/jobs/104",
+    "content": "Partner with risk and collections teams on credit risk analytics. You will own metrics, build dashboards and run deep dives with product and business teams.\n\nRequirements\n• 3-5 years of experience in analytics\n• Strong SQL and Python (Pandas)\n• Power BI or Tableau dashboards\n• A/B testing and statistics\n• Stakeholder management and data storytelling\n\nNice to have\n• BigQuery or Snowflake\n• dbt\n"
+   },
+   {
+    "id": 105,
+    "title": "Business Intelligence Analyst",
+    "location": {
+     "name": "Mumbai"
+    },
+    "first_published": "{{days_ago:41}}",
+    "absolute_url": "https://example.com/demofin/jobs/105",
+    "content": "Own the reporting layer. You will own metrics, build dashboards and run deep dives with product and business teams.\n\nRequirements\n• 2-5 years of experience in analytics\n• Strong SQL and Python (Pandas)\n• Power BI or Tableau dashboards\n• A/B testing and statistics\n• Stakeholder management and data storytelling\n\nNice to have\n• BigQuery or Snowflake\n• dbt\n"
+   }
+  ]
+ }
+}

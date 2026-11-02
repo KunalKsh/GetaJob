@@ -1,0 +1,93 @@
+{% macro card(j, back="/dashboard", review=False, llm_on=False) %}
+{% set det = j.fit_detail or {} %}
+<article class="card {{ 'is-new' if j.new_since_refresh }}" id="job-{{ j.id }}">
+  <div class="score" title="Resume-fit score out of 100">
+    <span class="n">{{ j.fit_score if j.fit_score is not none else '–' }}</span>
+    <span class="bar"><i style="width: {{ j.fit_score or 0 }}%"></i></span>
+    <span class="l">fit</span>
+  </div>
+  <div class="main">
+    <a class="title" href="{{ j.apply_url }}" target="_blank" rel="noopener">{{ j.title }}</a>
+    <div class="meta">
+      <b>{{ j.company or 'Company unknown' }}</b>
+      <span>{{ j.city or 'City unknown' }}{% if j.cities and j.cities|length > 1 %} (+{{ j.cities|length - 1 }} more){% endif %}{% if j.work_mode and j.work_mode != 'unknown' %} · {{ j.work_mode }}{% endif %}</span>
+      <span>{{ salary_label(j) }}</span>
+      {% if j.experience_required %}<span>{{ j.experience_required }}</span>{% endif %}
+    </div>
+    <div class="meta">
+      <span>{% if j.posted_date %}<b>{{ humanize_age(j.age) }}</b> · {{ fmt_date(j.posted_date) }} <span class="small">({{ CONF_LABEL.get(j.posted_date_confidence, '') }})</span>{% else %}<b>Posted date unknown</b>{% if j.extra and j.extra.alert_received %} · alert received {{ j.extra.alert_received[:16] }}{% endif %}{% endif %}</span>
+      {% if j.tier %}<span class="small">Tier {{ j.tier }}</span>{% endif %}
+    </div>
+  </div>
+  <div class="side">
+    <a class="btn" href="{{ j.apply_url }}" target="_blank" rel="noopener">Open job</a>
+    <div class="track">
+      <label class="small muted" for="t-{{ j.id }}">Track</label>
+      <select id="t-{{ j.id }}" data-track="{{ j.id }}" data-field="status">
+        <option value="">—</option>
+        {% for s in TRACKER_STATUSES %}<option {{ 'selected' if j.track and j.track.status == s }}>{{ s }}</option>{% endfor %}
+      </select>
+    </div>
+  </div>
+  <div class="tags">
+    {% set st = 'verified' if j.manual_verified else j.status %}
+    <span class="pill {{ STATUS_COLOR.get(j.status, 'grey') if not j.manual_verified else 'green' }}" title="{{ j.verify_note }}{% if j.last_verified %} · checked {{ fmt_dt(j.last_verified) }}{% endif %}">
+      {{ 'Verified by you' if j.manual_verified else STATUS_LABEL.get(j.status, j.status) }}{% if j.last_verified %} · {{ fmt_dt(j.last_verified) }}{% endif %}</span>
+    {% if j.new_since_refresh %}<span class="pill new">New since last refresh</span>{% endif %}
+    {% if j.reposted %}<span class="pill amber" title="{{ j.repost_note }}">Reposted</span>{% endif %}
+    {% for p in portals_of(j) %}<span class="pill src">{{ p }}</span>{% endfor %}
+    {% if j.resume_variant %}<span class="pill cv" title="Which of your four resume versions to send">Send: {{ j.resume_variant }} resume</span>{% endif %}
+    {% for fl in j.flags or [] %}<span class="pill {{ 'red' if 'payment' in fl or 'personal email' in fl else 'grey' }}">{{ fl }}</span>{% endfor %}
+  </div>
+  <details class="why">
+    <summary>Why this score{% if det.gaps %} · {{ det.gaps|length }} gap{{ 's' if det.gaps|length != 1 }}{% endif %}{% if j.verify_note %} · {{ j.verify_note }}{% endif %}</summary>
+    <div class="why-grid">
+      <div class="parts">
+        {% set W = {'skills': 40, 'title': 20, 'experience': 15, 'salary': 10, 'industry': 10, 'location': 5} %}
+        {% for k, w in W.items() %}
+          <span>{{ k|capitalize }}</span><span class="b"><i style="width: {{ ((det.parts or {}).get(k, 0) / w * 100)|round }}%"></i></span>
+          <span class="mono">{{ (det.parts or {}).get(k, 0) }}/{{ w }}</span>
+        {% endfor %}
+      </div>
+      <div>
+        <div class="small muted">Matched skills</div>
+        {% for s in det.matched or [] %}<span class="skill have">{{ s }}</span>{% else %}<span class="small muted">None detected</span>{% endfor %}
+        <div class="small muted" style="margin-top:6px">Gaps (in the JD, not on your resume)</div>
+        {% for s in det.gaps or [] %}<span class="skill gap">{{ s }}</span>{% else %}<span class="small muted">No gaps found</span>{% endfor %}
+      </div>
+      <div class="small">
+        <div>Experience asked: {{ det.experience_note or 'not stated' }}</div>
+        <div>Salary: {{ det.salary_note or 'not stated' }}</div>
+        <div>Level: {{ det.level or '–' }}{% if det.industries %} · Industry: {{ det.industries|join(', ') }}{% endif %}</div>
+        {% for n in det.notes or [] %}<div class="muted">{{ n }}</div>{% endfor %}
+        {% if j.date_note %}<div class="muted">{{ j.date_note }}</div>{% endif %}
+        {% if j.repost_note %}<div class="muted">{{ j.repost_note }}</div>{% endif %}
+        {% if j.links and j.links|length > 1 %}<div style="margin-top:4px">Also listed on:
+          {% for l in j.links[1:] %}<a href="{{ l.url }}" target="_blank" rel="noopener">{{ l.portal }}{% if l.via %} ({{ l.via }}){% elif l.source %} via {{ l.source|capitalize }}{% endif %}</a>{{ ', ' if not loop.last }}{% endfor %}</div>{% endif %}
+      </div>
+    </div>
+    {% if llm_on %}
+      <div class="small" style="margin-top:8px">
+        <span data-summary-out="{{ j.id }}">{{ j.llm_summary or '' }}</span>
+        {% if not j.llm_summary %}<button class="btn quiet" type="button" data-summary="{{ j.id }}">Write a fit summary</button>{% endif %}
+      </div>
+    {% endif %}
+    {% if review %}
+      <form method="post" action="/jobs/{{ j.id }}/manual-verify" class="row" style="margin-top:10px"><input type="hidden" name="csrf_token" value="{{ csrf }}">
+        <input type="hidden" name="back" value="{{ back }}">
+        {% if not j.posted_date %}<label class="f">Posted date shown on the job page<input type="date" name="posted" required></label>{% endif %}
+        <button class="btn ghost" type="submit">Mark as verified by me</button>
+      </form>
+      {% if j.apply_url %}
+      <form method="post" action="/jobs/{{ j.id }}/recheck" style="margin-top:6px"><input type="hidden" name="csrf_token" value="{{ csrf }}">
+        <input type="hidden" name="back" value="{{ back }}"><button class="btn quiet" type="submit">Check again now</button>
+      </form>{% endif %}
+    {% endif %}
+    {% if j.manual_verified %}
+      <form method="post" action="/jobs/{{ j.id }}/unverify" style="margin-top:6px"><input type="hidden" name="csrf_token" value="{{ csrf }}">
+        <input type="hidden" name="back" value="{{ back }}"><button class="btn quiet" type="submit">Undo "verified by me"</button>
+      </form>
+    {% endif %}
+  </details>
+</article>
+{% endmacro %}

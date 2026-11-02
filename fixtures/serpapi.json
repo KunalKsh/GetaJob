@@ -1,0 +1,22 @@
+{
+ "jobs_results": [
+  {
+   "job_id": "sp1",
+   "title": "Growth Analyst",
+   "company_name": "Sample Quick Commerce (demo)",
+   "location": "Gurugram, Haryana, India",
+   "via": "LinkedIn",
+   "description": "Own growth metrics, cohort analysis and campaign ROI. You will own metrics, build dashboards and run deep dives with product and business teams.\n\nRequirements\n• 2-4 years of experience in analytics\n• Strong SQL and Python (Pandas)\n• Power BI or Tableau dashboards\n• A/B testing and statistics\n• Stakeholder management and data storytelling\n\nNice to have\n• BigQuery or Snowflake\n• dbt\n",
+   "detected_extensions": {
+    "posted_at": "3 days ago",
+    "schedule_type": "Full-time"
+   },
+   "apply_options": [
+    {
+     "title": "LinkedIn",
+     "link": "https://www.linkedin.com/jobs/view/0000000002"
+    }
+   ]
+  }
+ ]
+}

@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}Account · {{ APP_NAME }}{% endblock %}
+{% block content %}
+<div><h1>Account</h1><p class="muted">{{ user.name }} · {{ user.email }}{% if user.role == 'admin' %} · admin{% endif %}</p></div>
+{% if msg %}<div class="notice">{{ msg }}</div>{% endif %}
+{% if err %}<div class="notice err" role="alert">{{ err }}</div>{% endif %}
+<div class="grid2">
+  <form method="post" action="/account/password" class="panel">
+    <input type="hidden" name="csrf_token" value="{{ csrf }}">
+    <h2>Change password</h2>
+    <label class="f" for="cur">Current password<input id="cur" type="password" name="current" autocomplete="current-password" required></label>
+    <label class="f" for="new">New password (at least 10 characters)<input id="new" type="password" name="new" autocomplete="new-password" minlength="10" required></label>
+    <label class="f" for="conf">Repeat new password<input id="conf" type="password" name="confirm" autocomplete="new-password" minlength="10" required></label>
+    <div><button class="btn" type="submit">Change password</button></div>
+  </form>
+  <form method="post" action="/account/delete" class="panel danger">
+    <input type="hidden" name="csrf_token" value="{{ csrf }}">
+    <h2>Delete my account</h2>
+    <p class="small muted">Permanently deletes your account, resumes, preferences, scores and tracker. This can't be undone.</p>
+    <label class="f" for="dpw">Password<input id="dpw" type="password" name="password" autocomplete="current-password" required></label>
+    <label class="f" for="dconf">Type DELETE to confirm<input id="dconf" type="text" name="confirm_text" required></label>
+    <div><button class="btn danger" type="submit">Delete account</button></div>
+  </form>
+</div>
+{% endblock %}

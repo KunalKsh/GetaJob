@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% from "_card.html" import card with context %}
+{% block title %}Dashboard · {{ APP_NAME }}{% endblock %}
+{% block content %}
+{% if saved %}
+<div class="notice">Saved. Your lists below are re-ranked for your roles and filters. Roles you just added are searched in the next update{% if last_run %} (jobs last updated {{ fmt_dt(last_run.finished) }}){% endif %}.</div>
+{% endif %}
+{% if total_jobs == 0 %}
+<div class="notice warn">No jobs in the pool yet. The first update runs automatically{% if user.role == 'admin' %}, or press <b>Refresh now</b>{% endif %}. It takes a few minutes.</div>
+{% endif %}
+
+<div class="row" style="justify-content: space-between; align-items: center">
+  <div class="tabs" role="tablist">
+    {% for key in ['ncr', 'metro'] %}
+    <a role="tab" class="tab {{ 'on' if tab == key }}" href="/dashboard?tab={{ key }}" aria-selected="{{ 'true' if tab == key else 'false' }}">
+      <b>{{ BUCKET_LABEL[key] }}</b>
+      <span class="count">{{ buckets[key].count }} of {{ prefs.bucket_size }} · verified, ≤{{ prefs.max_age_days }} days</span>
+    </a>
+    {% endfor %}
+  </div>
+  <div class="row">
+    <a class="btn ghost" href="/export/top100.xlsx">Export top 100 to Excel</a>
+    {% if review_count %}<a class="btn quiet" href="/review">{{ review_count }} need review</a>{% endif %}
+  </div>
+</div>
+
+{% if bucket.shortfall %}<div class="notice warn">{{ bucket.shortfall }} Nothing stale or unverified is added to fill the gap.</div>{% endif %}
+
+<div class="chips" aria-label="Freshness tiers">
+  <a class="chip {{ 'on' if not f.tier }}" href="/dashboard?tab={{ tab }}">All {{ bucket.count }}</a>
+  {% for t, limit, label in tiers %}
+  <a class="chip {{ 'on' if f.tier == t|string }}" href="/dashboard?tab={{ tab }}&tier={{ t }}">{{ label }} · {{ bucket.tiers[t] }}</a>
+  {% endfor %}
+</div>
+
+<form class="filters" method="get" action="/dashboard">
+  <input type="hidden" name="tab" value="{{ tab }}">
+  {% if f.tier %}<input type="hidden" name="tier" value="{{ f.tier }}">{% endif %}
+  <label class="f" for="f-city">City<select id="f-city" name="city"><option value="">All</option>{% for c in cities %}<option {{ 'selected' if f.city == c }}>{{ c }}</option>{% endfor %}</select></label>
+  <label class="f" for="f-portal">Source<select id="f-portal" name="portal"><option value="">All</option>{% for p in portals %}<option {{ 'selected' if f.portal == p }}>{{ p }}</option>{% endfor %}</select></label>
+  <label class="f" for="f-role">Role<select id="f-role" name="role"><option value="">All</option>{% for r in roles %}<option {{ 'selected' if f.role == r }}>{{ r }}</option>{% endfor %}</select></label>
+  <label class="f" for="f-salary">Salary<select id="f-salary" name="salary"><option value="">Any</option><option value="stated" {{ 'selected' if f.salary=='stated' }}>Stated</option><option value="unknown" {{ 'selected' if f.salary=='unknown' }}>Unknown</option></select></label>
+  <label class="f" for="f-mode">Work mode<select id="f-mode" name="mode"><option value="">Any</option>{% for m in ['onsite','hybrid','remote','unknown'] %}<option {{ 'selected' if f.mode == m }}>{{ m }}</option>{% endfor %}</select></label>
+  <label class="f" for="f-status">Verification<select id="f-status" name="status"><option value="">All counted</option><option value="verified" {{ 'selected' if f.status=='verified' }}>Checked automatically</option><option value="manual" {{ 'selected' if f.status=='manual' }}>Verified by you</option></select></label>
+  <label class="f" for="f-fit">Min fit<input id="f-fit" type="number" name="min_fit" min="0" max="100" step="5" value="{{ f.min_fit or '' }}" style="width:80px"></label>
+  <label class="f" for="f-sort">Sort<select id="f-sort" name="sort">
+    <option value="tier" {{ 'selected' if f.sort=='tier' }}>Freshness tier, then fit</option>
+    <option value="fit" {{ 'selected' if f.sort=='fit' }}>Fit score</option>
+    <option value="newest" {{ 'selected' if f.sort=='newest' }}>Newest first</option>
+    <option value="salary" {{ 'selected' if f.sort=='salary' }}>Salary</option>
+    <option value="company" {{ 'selected' if f.sort=='company' }}>Company</option></select></label>
+  <button class="btn" type="submit">Apply</button>
+  {% if qs %}<a class="btn quiet" href="/dashboard?tab={{ tab }}">Clear</a>{% endif %}
+</form>
+
+<section class="cards" aria-label="Job postings">
+  {% for j in rows %}{{ card(j, back="/dashboard?tab=" ~ tab, llm_on=llm_on) }}
+  {% else %}<div class="empty">{% if bucket.count %}No postings match these filters.{% else %}No verified postings in this list yet.{% endif %}</div>{% endfor %}
+</section>
+{% endblock %}

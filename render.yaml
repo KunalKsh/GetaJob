@@ -1,0 +1,34 @@
+# Render Blueprint: render.com → New → Blueprint → pick this repo.
+services:
+  - type: web
+    name: getajob
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT --proxy-headers --forwarded-allow-ips="*"
+    healthCheckPath: /healthz
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.12.8"
+      - key: SECRET_KEY            # signs session cookies
+        generateValue: true
+      - key: CRON_SECRET           # lets the GitHub Action trigger scheduled job updates
+        generateValue: true
+      - key: ADMIN_EMAIL
+        value: kunalkaushal1120@gmail.com
+      - key: COOKIE_SECURE
+        value: "1"
+      - key: DATABASE_URL          # Neon (or any Postgres) connection string
+        sync: false
+      - key: PUBLIC_URL            # e.g. https://getajob.onrender.com
+        sync: false
+      - key: ADZUNA_APP_ID
+        sync: false
+      - key: ADZUNA_APP_KEY
+        sync: false
+      - key: JOOBLE_KEY
+        sync: false
+      - key: RAPIDAPI_KEY
+        sync: false
+      - key: SERPAPI_KEY
+        sync: false

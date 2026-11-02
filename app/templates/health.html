@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block title %}Sources · {{ APP_NAME }}{% endblock %}
+{% block content %}
+<div>
+  <h1>Sources</h1>
+  <p class="muted">Last refresh: {{ fmt_dt(last.finished) if last else 'never' }}{% if last %} · {{ last.summary.collected }} postings collected, {{ last.summary.unique }} after removing duplicates, {{ last.summary.new }} new, {{ last.summary.requests }} web requests in {{ last.summary.seconds }} s{% endif %}</p>
+</div>
+
+<section class="panel">
+  <h2>The 7 portals</h2>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>Portal</th><th>Jobs found</th><th>Passed verification</th><th>How it's covered</th><th>Limits and errors</th></tr></thead>
+      <tbody>
+      {% for p in portal_rows %}
+        <tr>
+          <td><b>{{ p.portal }}</b></td>
+          <td class="num">{{ p.found }}</td>
+          <td class="num">{{ p.ok }}</td>
+          <td class="small">{{ p.how }}</td>
+          <td class="small"><span class="muted">{{ p.limit }}</span>
+            {% for e in p.errors %}<div style="color:var(--red)">{{ e }}</div>{% endfor %}
+            {% for n in p.notes %}<div class="muted">{{ n }}</div>{% endfor %}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="panel">
+  <h2>Adapters</h2>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>Adapter</th><th>Status</th><th>Last run</th><th>Found</th><th>Verified</th><th>Notes</th></tr></thead>
+      <tbody>
+      {% for s in src_rows %}
+        <tr>
+          <td><b>{{ s.label }}</b><div class="small muted">{{ s.coverage }}</div></td>
+          <td>{% if s.configured %}<span class="pill green">Ready</span>{% elif s.needs %}<span class="pill grey">Not configured</span><div class="small muted">Needs {{ s.needs|join(', ') }}</div>{% else %}<span class="pill grey">No companies listed</span>{% endif %}</td>
+          <td class="small">{{ fmt_dt(s.last_run) if s.last_run else '–' }}</td>
+          <td class="num">{{ s.found if s.found is not none else '–' }}</td>
+          <td class="num">{{ s.kept if s.kept is not none else '–' }}</td>
+          <td class="small">{% if s.error %}<div style="color:var(--red)">{{ s.error }}</div>{% endif %}{% if s.note %}<div class="muted">{{ s.note }}</div>{% endif %}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+{% if keys %}<section class="panel">
+  <h2>API keys</h2>
+  <p class="small muted">Environment variables on the server. Values are never shown here.</p>
+  <div class="chips">{% for name, ok in keys.items() %}<span class="pill {{ 'green' if ok else 'grey' }}">{{ name }}: {{ 'configured' if ok else 'not configured' }}</span>{% endfor %}</div>
+</section>{% endif %}
+{% endblock %}

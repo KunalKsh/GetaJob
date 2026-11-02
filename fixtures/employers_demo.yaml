@@ -1,0 +1,7 @@
+# Fictional sample companies used only in demo mode. None of these postings are real.
+greenhouse:
+  - {token: demofin, name: Sample Fintech Co (demo), industry: Fintech}
+lever:
+  - {company: demoinsure, name: Sample Insurance Co (demo), industry: Insurance}
+workday:
+  - {tenant: demoauto, host: wd1, site: Careers, name: Sample Auto Co (demo), industry: Automotive}

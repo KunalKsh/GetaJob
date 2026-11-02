@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="csrf-token" content="{{ csrf }}">
+<title>{% block title %}{{ APP_NAME }}{% endblock %}</title>
+<link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="in">
+    <a class="brand" href="{{ '/dashboard' if user else '/' }}">Geta<span>Job</span></a>
+    {% if user %}
+    <nav aria-label="Main">
+      <a href="/dashboard" class="{{ 'on' if nav=='dashboard' }}">Dashboard</a>
+      <a href="/tracker" class="{{ 'on' if nav=='tracker' }}">Tracker</a>
+      <a href="/review" class="{{ 'on' if nav=='review' }}">Needs review</a>
+      <a href="/import" class="{{ 'on' if nav=='import' }}">Import</a>
+      <a href="/resumes" class="{{ 'on' if nav=='resumes' }}">Resumes</a>
+      <a href="/profile" class="{{ 'on' if nav=='profile' }}">Roles &amp; filters</a>
+      <a href="/health" class="{{ 'on' if nav=='health' }}">Sources</a>
+      {% if user.role == 'admin' %}<a href="/admin" class="{{ 'on' if nav=='admin' }}">Admin</a>{% endif %}
+    </nav>
+    <div class="refreshbox">
+      {% if settings.demo_mode %}<span class="badge-demo" title="Sources read sample data">Demo mode</span>{% endif %}
+      <span class="progress" id="refresh-status">
+        {% if refresh.running %}<span class="spinner"></span> Updating jobs: {{ refresh.phase }}
+        {% elif last_run %}Jobs updated {{ fmt_dt(last_run.finished) }}
+        {% else %}Jobs not updated yet{% endif %}
+      </span>
+      {% if user.role == 'admin' %}<button class="btn" id="refresh-btn" type="button" {{ 'disabled' if refresh.running }}>Refresh now</button>{% endif %}
+      <details class="usermenu">
+        <summary aria-label="Account menu">{{ (user.name or user.email)[:1]|upper }}</summary>
+        <div class="menu">
+          <div class="small muted">{{ user.email }}</div>
+          <a href="/account">Account</a>
+          <form method="post" action="/logout"><input type="hidden" name="csrf_token" value="{{ csrf }}"><button type="submit" class="linkbtn">Sign out</button></form>
+        </div>
+      </details>
+    </div>
+    {% else %}
+    <div class="refreshbox">
+      <a class="btn quiet" href="/login">Sign in</a>
+      <a class="btn" href="/request-access">Request access</a>
+    </div>
+    {% endif %}
+  </div>
+</header>
+<main class="{% block mainclass %}{% endblock %}">
+{% block content %}{% endblock %}
+</main>
+<footer class="foot">
+  <span>{{ APP_NAME }} finds and checks job postings. It never applies or messages anyone for you.</span>
+</footer>
+<script src="/static/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block title %}Resumes · {{ APP_NAME }}{% endblock %}
+{% block content %}
+<div>
+  <h1>Your resumes</h1>
+  <p class="muted">Upload 1 to {{ max_resumes }} versions of <b>your</b> resume (for example a BI version, a product version and a general one). They must all belong to the same person. Your skills are merged into one profile, and each job card tells you which version to send.</p>
+</div>
+{% if msg %}<div class="notice">{{ msg }}</div>{% endif %}
+{% if err %}<div class="notice err" role="alert">{% for e in err.split(' | ') %}<div>{{ e }}</div>{% endfor %}</div>{% endif %}
+
+<div class="grid2">
+  <section class="panel">
+    <h2>Uploaded ({{ rows|length }} of {{ max_resumes }})</h2>
+    {% if rows %}
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>File</th><th>Size</th><th>Uploaded</th><th></th></tr></thead>
+        <tbody>
+        {% for r in rows %}
+          <tr>
+            <td><a href="/resumes/{{ r.id }}/download">{{ r.filename }}</a>{% if r.identity.name %}<div class="small muted">{{ r.identity.name }}</div>{% endif %}</td>
+            <td class="num">{{ kb(r.size) }}</td>
+            <td class="small">{{ fmt_dt(r.uploaded_at) }}</td>
+            <td><form method="post" action="/resumes/{{ r.id }}/delete" data-confirm="Delete {{ r.filename }}?"><input type="hidden" name="csrf_token" value="{{ csrf }}"><button class="btn quiet" type="submit">Delete</button></form></td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}<div class="empty">No resumes yet. Upload a PDF to get started.</div>{% endif %}
+
+    {% if rows|length < max_resumes %}
+    <form method="post" action="/resumes/upload" enctype="multipart/form-data" class="dropzone" id="dropzone">
+      <input type="hidden" name="csrf_token" value="{{ csrf }}">
+      <label for="files"><b>Choose PDF files</b> or drop them here<span class="small muted">Up to {{ max_resumes - rows|length }} more · {{ max_mb }} MB each · text-based PDF</span></label>
+      <input id="files" type="file" name="files" accept="application/pdf,.pdf" multiple required>
+      <div id="filelist" class="small muted"></div>
+      <button class="btn" type="submit">Upload</button>
+    </form>
+    {% endif %}
+  </section>
+
+  <section class="panel">
+    <h2>What your resumes say</h2>
+    {% if profile %}
+      <div class="small" style="display:grid;gap:4px">
+        <div><b>{{ profile.current_title or 'Title not found' }}</b>{% if profile.current_company %} at {{ profile.current_company }}{% endif %}</div>
+        <div>{{ profile.years_experience }} years of experience (from the dates in your work history)</div>
+        <div>Based in {{ profile.location or 'unknown' }} · Industries: {{ (profile.industries or [])|join(', ') or 'not detected' }}</div>
+        {% if profile.contact_removed %}<div class="muted">Phone, email and links are left out of your saved profile.</div>{% endif %}
+      </div>
+      <div class="small muted">Skills found ({{ profile.skills|length }})</div>
+      <div>{% for s in profile.skills %}<span class="skill have">{{ s }}</span>{% endfor %}</div>
+      {% if profile.variants and profile.variants|length > 1 %}
+      <div class="small muted">Versions</div>
+      <ul class="small">{% for v in profile.variants %}<li><b>{{ v.label }}</b> · focus: {{ v.focus }}</li>{% endfor %}</ul>
+      {% endif %}
+      <div><a class="btn" href="/profile">Confirm roles and filters</a></div>
+    {% else %}
+      <p class="small muted">Your skills, experience and suggested roles appear here after you upload a resume.</p>
+    {% endif %}
+  </section>
+</div>
+{% endblock %}

@@ -1,0 +1,76 @@
+{
+ "demoauto": {
+  "jobs": [
+   {
+    "title": "Data Analyst",
+    "locationsText": "Gurugram, India",
+    "postedOn": "{{rel_days:3}}",
+    "externalPath": "/job/Gurugram-India/Data-Analyst_R100"
+   },
+   {
+    "title": "Senior Business Analyst",
+    "locationsText": "2 Locations",
+    "postedOn": "{{rel_days:8}}",
+    "externalPath": "/job/Noida-India/Senior-Business-Analyst_R101"
+   },
+   {
+    "title": "Marketing Analytics Analyst",
+    "locationsText": "Bengaluru, India",
+    "postedOn": "Posted 30+ Days Ago",
+    "externalPath": "/job/Bengaluru-India/Marketing-Analytics-Analyst_R102"
+   },
+   {
+    "title": "Insights Analyst",
+    "locationsText": "Hyderabad, India",
+    "postedOn": "{{rel_days:12}}",
+    "externalPath": "/job/Hyderabad-India/Insights-Analyst_R103"
+   }
+  ],
+  "details": {
+   "/job/Gurugram-India/Data-Analyst_R100": {
+    "jobPostingInfo": {
+     "title": "Data Analyst",
+     "location": "Gurugram, India",
+     "startDate": "{{date_ago:3}}",
+     "postedOn": "{{rel_days:3}}",
+     "jobReqId": "R100",
+     "canApply": true,
+     "jobDescription": "Analyse dealer, OEM and vehicle sales data for our two-wheeler and EV business. You will own metrics, build dashboards and run deep dives with product and business teams.\n\nRequirements\n• 2-4 years of experience in analytics\n• Strong SQL and Python (Pandas)\n• Power BI or Tableau dashboards\n• A/B testing and statistics\n• Stakeholder management and data storytelling\n\nNice to have\n• BigQuery or Snowflake\n• dbt\n"
+    }
+   },
+   "/job/Noida-India/Senior-Business-Analyst_R101": {
+    "jobPostingInfo": {
+     "title": "Senior Business Analyst",
+     "location": "Noida, India",
+     "additionalLocations": [
+      "Pune, India"
+     ],
+     "startDate": "{{date_ago:8}}",
+     "jobReqId": "R101",
+     "canApply": true,
+     "jobDescription": "Requirement gathering and KPI design for our automotive finance platform. You will own metrics, build dashboards and run deep dives with product and business teams.\n\nRequirements\n• 3-6 years of experience in analytics\n• Strong SQL and Python (Pandas)\n• Power BI or Tableau dashboards\n• A/B testing and statistics\n• Stakeholder management and data storytelling\n\nNice to have\n• BigQuery or Snowflake\n• dbt\n"
+    }
+   },
+   "/job/Bengaluru-India/Marketing-Analytics-Analyst_R102": {
+    "jobPostingInfo": {
+     "title": "Marketing Analytics Analyst",
+     "location": "Bengaluru, India",
+     "startDate": "{{date_ago:35}}",
+     "jobReqId": "R102",
+     "canApply": true,
+     "jobDescription": "Campaign ROI analysis. You will own metrics, build dashboards and run deep dives with product and business teams.\n\nRequirements\n• 2-5 years of experience in analytics\n• Strong SQL and Python (Pandas)\n• Power BI or Tableau dashboards\n• A/B testing and statistics\n• Stakeholder management and data storytelling\n\nNice to have\n• BigQuery or Snowflake\n• dbt\n"
+    }
+   },
+   "/job/Hyderabad-India/Insights-Analyst_R103": {
+    "jobPostingInfo": {
+     "title": "Insights Analyst",
+     "location": "Hyderabad, India",
+     "startDate": "{{date_ago:12}}",
+     "jobReqId": "R103",
+     "canApply": true,
+     "jobDescription": "Customer segmentation and cohort analysis for the connected-vehicle app. You will own metrics, build dashboards and run deep dives with product and business teams.\n\nRequirements\n• 1-3 years of experience in analytics\n• Strong SQL and Python (Pandas)\n• Power BI or Tableau dashboards\n• A/B testing and statistics\n• Stakeholder management and data storytelling\n\nNice to have\n• BigQuery or Snowflake\n• dbt\n"
+    }
+   }
+  }
+ }
+}

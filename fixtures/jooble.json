@@ -1,0 +1,26 @@
+{
+ "jobs": [
+  {
+   "id": 9001,
+   "title": "Business Analyst",
+   "company": "Sample Bank (demo)",
+   "location": "Gurugram, Haryana",
+   "updated": "{{days_ago:3}}",
+   "link": "https://example.com/jooble/9001",
+   "source": "naukri.com",
+   "salary": "₹12 - 16 LPA",
+   "snippet": "SQL, Excel, stakeholder management for retail banking."
+  },
+  {
+   "id": 9002,
+   "title": "Data Analyst",
+   "company": "Sample Ecommerce Co (demo)",
+   "location": "Pune, Maharashtra",
+   "updated": "{{days_ago:16}}",
+   "link": "https://example.com/jooble/9002",
+   "source": "indeed.com",
+   "salary": "",
+   "snippet": "Python and SQL for marketplace analytics."
+  }
+ ]
+}

@@ -1,0 +1,51 @@
+{
+ "data": [
+  {
+   "job_id": "js1",
+   "job_title": "Product Analyst",
+   "employer_name": "Sample Travel Co (demo)",
+   "job_city": "Gurugram",
+   "job_state": "Haryana",
+   "job_country": "IN",
+   "job_publisher": "LinkedIn",
+   "job_apply_link": "https://www.linkedin.com/jobs/view/0000000001",
+   "apply_options": [
+    {
+     "publisher": "LinkedIn",
+     "apply_link": "https://www.linkedin.com/jobs/view/0000000001",
+     "is_direct": false
+    },
+    {
+     "publisher": "Sample Travel Co Careers",
+     "apply_link": "https://example.com/travel/careers/js1",
+     "is_direct": true
+    }
+   ],
+   "job_posted_at_datetime_utc": "{{days_ago:2}}",
+   "job_description": "Experimentation and funnel analytics for hotel booking flows. You will own metrics, build dashboards and run deep dives with product and business teams.\n\nRequirements\n• 2-4 years of experience in analytics\n• Strong SQL and Python (Pandas)\n• Power BI or Tableau dashboards\n• A/B testing and statistics\n• Stakeholder management and data storytelling\n\nNice to have\n• BigQuery or Snowflake\n• dbt\n",
+   "job_is_remote": false,
+   "job_salary_currency": "INR",
+   "job_min_salary": 1400000,
+   "job_max_salary": 1800000,
+   "job_salary_period": "YEAR"
+  },
+  {
+   "job_id": "js2",
+   "job_title": "Decision Scientist",
+   "employer_name": "Sample Lender (demo)",
+   "job_city": "Bengaluru",
+   "job_state": "Karnataka",
+   "job_country": "IN",
+   "job_publisher": "Naukri",
+   "job_apply_link": "https://www.naukri.com/job-listings-decision-scientist-sample-0000",
+   "apply_options": [
+    {
+     "publisher": "Naukri",
+     "apply_link": "https://www.naukri.com/job-listings-decision-scientist-sample-0000"
+    }
+   ],
+   "job_posted_at_datetime_utc": "{{days_ago:6}}",
+   "job_description": "Credit risk models, segmentation and A/B tests for personal loans. You will own metrics, build dashboards and run deep dives with product and business teams.\n\nRequirements\n• 2-5 years of experience in analytics\n• Strong SQL and Python (Pandas)\n• Power BI or Tableau dashboards\n• A/B testing and statistics\n• Stakeholder management and data storytelling\n\nNice to have\n• BigQuery or Snowflake\n• dbt\n"
+  }
+ ]
+}

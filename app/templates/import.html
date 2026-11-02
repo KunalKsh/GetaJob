@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% from "_card.html" import card with context %}
+{% block title %}Import · {{ APP_NAME }}{% endblock %}
+{% block content %}
+<div>
+  <h1>Import a job</h1>
+  <p class="muted">For postings on login-walled portals (LinkedIn, Instahyre, IIMJobs) or anything the search missed. Paste the link, the full job description, or both. It goes through the same checks and scoring, and is added to your Tracker as Shortlisted. Imported jobs are visible only to you.</p>
+</div>
+{% if msg %}<div class="notice">{{ msg }}</div>{% endif %}
+{% if job %}{{ card(job, back="/import?job=" ~ job.id, review=(job.status != 'verified' and not job.manual_verified)) }}{% endif %}
+<form method="post" action="/import" class="panel"><input type="hidden" name="csrf_token" value="{{ csrf }}">
+  <label class="f" for="url">Job link<input id="url" type="url" name="url" placeholder="https://…"></label>
+  <label class="f" for="text">Or paste the job description<textarea id="text" name="text" rows="10" placeholder="Paste the full posting, including title, company and location if shown"></textarea></label>
+  <p class="small muted" style="margin:0">Fill these in if the page or text doesn't show them clearly:</p>
+  <div class="row">
+    <label class="f" for="title">Title<input id="title" type="text" name="title"></label>
+    <label class="f" for="company">Company<input id="company" type="text" name="company"></label>
+    <label class="f" for="location">City<input id="location" type="text" name="location" placeholder="Gurugram"></label>
+    <label class="f" for="posted">Posted on<input id="posted" type="date" name="posted"></label>
+  </div>
+  <div><button class="btn" type="submit">Import and check</button></div>
+</form>
+<form method="post" action="/import/alerts" enctype="multipart/form-data" class="panel">
+  <input type="hidden" name="csrf_token" value="{{ csrf }}">
+  <h2>Upload job-alert emails</h2>
+  <p class="small muted" style="margin:0">Bring in jobs from your LinkedIn, Naukri, Instahyre or IIMJobs alert emails. In Gmail, open an alert email → ⋮ → <b>Download message</b> to save it as .eml. For many at once, use Google Takeout to export a label as .mbox. Jobs found here are visible only to you, and appear under <a href="/review">Needs review</a> until you confirm each posting date.</p>
+  <div class="row"><label class="f" for="alerts">.eml or .mbox files<input id="alerts" type="file" name="files" accept=".eml,.mbox,message/rfc822" multiple required></label>
+  <button class="btn" type="submit">Read alerts</button></div>
+</form>
+{% endblock %}

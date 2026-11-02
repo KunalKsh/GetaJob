@@ -1,0 +1,59 @@
+{
+ "demoinsure": [
+  {
+   "id": "lv1",
+   "text": "Business Intelligence Analyst",
+   "categories": {
+    "location": "Gurgaon",
+    "allLocations": [
+     "Gurgaon"
+    ]
+   },
+   "createdAt": "{{days_ago_ms:2}}",
+   "hostedUrl": "https://example.com/demoinsure/lv1",
+   "applyUrl": "https://example.com/demoinsure/lv1/apply",
+   "descriptionPlain": "Build Power BI dashboards and DAX models for our motor and health insurance business, including claims and policy analytics. You will own metrics, build dashboards and run deep dives with product and business teams.\n\nRequirements\n• 2-4 years of experience in analytics\n• Strong SQL and Python (Pandas)\n• Power BI or Tableau dashboards\n• A/B testing and statistics\n• Stakeholder management and data storytelling\n\nNice to have\n• BigQuery or Snowflake\n• dbt\n",
+   "workplaceType": "hybrid"
+  },
+  {
+   "id": "lv2",
+   "text": "Strategy Analyst",
+   "categories": {
+    "location": "Pune"
+   },
+   "createdAt": "{{days_ago_ms:14}}",
+   "hostedUrl": "https://example.com/demoinsure/lv2",
+   "descriptionPlain": "Growth strategy, market sizing and pricing analysis for insurance distribution. You will own metrics, build dashboards and run deep dives with product and business teams.\n\nRequirements\n• 2-5 years of experience in analytics\n• Strong SQL and Python (Pandas)\n• Power BI or Tableau dashboards\n• A/B testing and statistics\n• Stakeholder management and data storytelling\n\nNice to have\n• BigQuery or Snowflake\n• dbt\n"
+  },
+  {
+   "id": "lv3",
+   "text": "Analytics Manager",
+   "categories": {
+    "location": "Hyderabad"
+   },
+   "createdAt": "{{days_ago_ms:20}}",
+   "hostedUrl": "https://example.com/demoinsure/lv3",
+   "descriptionPlain": "Lead a team of four analysts. You will own metrics, build dashboards and run deep dives with product and business teams.\n\nRequirements\n• 6-9 years of experience in analytics\n• Strong SQL and Python (Pandas)\n• Power BI or Tableau dashboards\n• A/B testing and statistics\n• Stakeholder management and data storytelling\n\nNice to have\n• BigQuery or Snowflake\n• dbt\n"
+  },
+  {
+   "id": "lv4",
+   "text": "Associate - Customer Support",
+   "categories": {
+    "location": "Noida"
+   },
+   "createdAt": "{{days_ago_ms:1}}",
+   "hostedUrl": "https://example.com/demoinsure/lv4",
+   "descriptionPlain": "Answer customer calls."
+  },
+  {
+   "id": "lv5",
+   "text": "Pricing Analyst",
+   "categories": {
+    "location": "New Delhi"
+   },
+   "createdAt": "{{days_ago_ms:6}}",
+   "hostedUrl": "https://example.com/demoinsure/lv5",
+   "descriptionPlain": "Model premiums and run pricing experiments for two-wheeler insurance. You will own metrics, build dashboards and run deep dives with product and business teams.\n\nRequirements\n• 2-5 years of experience in analytics\n• Strong SQL and Python (Pandas)\n• Power BI or Tableau dashboards\n• A/B testing and statistics\n• Stakeholder management and data storytelling\n\nNice to have\n• BigQuery or Snowflake\n• dbt\n"
+  }
+ ]
+}

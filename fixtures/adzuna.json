@@ -1,0 +1,85 @@
+{
+ "results": [
+  {
+   "id": "a1",
+   "title": "Senior <strong>Product Analyst</strong>",
+   "company": {
+    "display_name": "Sample Fintech Co (demo)"
+   },
+   "location": {
+    "display_name": "Gurgaon, Haryana",
+    "area": [
+     "India",
+     "Haryana",
+     "Gurgaon"
+    ]
+   },
+   "created": "{{days_ago:1}}",
+   "redirect_url": "https://example.com/adzuna/a1",
+   "description": "Analyse funnels and retention...",
+   "salary_is_predicted": "1",
+   "salary_min": 1500000
+  },
+  {
+   "id": "a2",
+   "title": "MIS Analyst",
+   "company": {
+    "display_name": "Sample Retail Co (demo)"
+   },
+   "location": {
+    "display_name": "Noida, Uttar Pradesh",
+    "area": [
+     "India",
+     "Uttar Pradesh",
+     "Noida"
+    ]
+   },
+   "created": "{{days_ago:4}}",
+   "redirect_url": "https://example.com/adzuna/a2",
+   "description": "Excel and MIS reporting for stores.",
+   "salary_is_predicted": "0",
+   "salary_min": 600000,
+   "salary_max": 800000
+  },
+  {
+   "id": "a3",
+   "title": "Business Analyst",
+   "company": {
+    "display_name": "Sample Excluded Co"
+   },
+   "location": {
+    "display_name": "Gurgaon",
+    "area": [
+     "India",
+     "Haryana",
+     "Gurgaon"
+    ]
+   },
+   "created": "{{days_ago:2}}",
+   "redirect_url": "https://example.com/adzuna/a3",
+   "description": "Excluded company example.",
+   "salary_is_predicted": "1"
+  },
+  {
+   "id": "a4",
+   "title": "Reporting Analyst",
+   "company": {
+    "display_name": "Sample Logistics Co (demo)"
+   },
+   "location": {
+    "display_name": "Mumbai, Maharashtra",
+    "area": [
+     "India",
+     "Maharashtra",
+     "Mumbai"
+    ]
+   },
+   "created": "{{days_ago:9}}",
+   "redirect_url": "https://example.com/adzuna/a4",
+   "description": "Power BI reporting for warehouse operations with SQL. Power BI reporting for warehouse operations with SQL. Power BI reporting for warehouse operations with SQL. Power BI reporting for warehouse operations with SQL. Power BI reporting for warehouse operations with SQL. Power BI reporting for warehouse operations with SQL. ",
+   "salary_is_predicted": "0",
+   "salary_min": 1200000,
+   "salary_max": 1600000
+  }
+ ]
+}

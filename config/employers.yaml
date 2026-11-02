@@ -1,0 +1,92 @@
+# Companies searched directly through their public job boards.
+# Every entry below was checked on 30 Oct 2026 and had India openings at the time.
+# Edit this file (or the box on the Settings page) to add companies. A wrong name just shows an
+# error on the Source Health page; it doesn't stop the other companies.
+#
+# How to find a company's board:
+#   Greenhouse:      job-boards.greenhouse.io/<token>          -> token
+#   Lever:           jobs.lever.co/<company>                   -> company
+#   Ashby:           jobs.ashbyhq.com/<org>                    -> org
+#   Workable:        apply.workable.com/<account>              -> account
+#   SmartRecruiters: jobs.smartrecruiters.com/<id>             -> id
+#   Workday:         <tenant>.<host>.myworkdayjobs.com/en-US/<site>   -> tenant, host, site
+
+greenhouse:
+  - {token: tide, name: Tide, industry: Fintech}
+  - {token: razorpaysoftwareprivatelimited, name: Razorpay, industry: Fintech}
+  - {token: groww, name: Groww, industry: Fintech}
+  - {token: payoneer, name: Payoneer, industry: Fintech}
+  - {token: stripe, name: Stripe, industry: Fintech}
+  - {token: adyen, name: Adyen, industry: Fintech}
+  - {token: coinbase, name: Coinbase, industry: Fintech}
+  - {token: zinnia, name: Zinnia, industry: Insurance}
+  - {token: capco, name: Capco, industry: Consulting}
+  - {token: clearviewhealthcarepartners, name: ClearView Healthcare Partners, industry: Consulting}
+  - {token: researchpartnership, name: Research Partnership, industry: Consulting}
+  - {token: sigmoid, name: Sigmoid, industry: SaaS / Tech}
+  - {token: dunnhumby, name: dunnhumby, industry: E-commerce}
+  - {token: airbnb, name: Airbnb, industry: Travel & Hospitality}
+  - {token: agoda, name: Agoda, industry: Travel & Hospitality}
+  - {token: inmobi, name: InMobi, industry: SaaS / Tech}
+  - {token: glance, name: Glance, industry: SaaS / Tech}
+  - {token: anaplan, name: Anaplan, industry: SaaS / Tech}
+  - {token: hackerrank, name: HackerRank, industry: SaaS / Tech}
+  - {token: okta, name: Okta, industry: SaaS / Tech}
+  - {token: zscaler, name: Zscaler, industry: SaaS / Tech}
+  - {token: databricks, name: Databricks, industry: SaaS / Tech}
+  - {token: mongodb, name: MongoDB, industry: SaaS / Tech}
+  - {token: datadog, name: Datadog, industry: SaaS / Tech}
+  - {token: elastic, name: Elastic, industry: SaaS / Tech}
+  - {token: toast, name: Toast, industry: SaaS / Tech}
+  - {token: samsara, name: Samsara, industry: SaaS / Tech}
+  - {token: quince, name: Quince, industry: E-commerce}
+  - {token: godaddy, name: GoDaddy, industry: SaaS / Tech}
+
+lever:
+  - {company: paytm, name: Paytm, industry: Fintech}
+  - {company: cred, name: CRED, industry: Fintech}
+  - {company: zeta, name: Zeta, industry: Fintech}
+  - {company: fampay, name: FamPay, industry: Fintech}
+  - {company: meesho, name: Meesho, industry: E-commerce}
+  - {company: thinkahead, name: AHEAD, industry: Consulting}
+  - {company: hevodata, name: Hevo Data, industry: SaaS / Tech}
+  - {company: shyftlabs, name: ShyftLabs, industry: SaaS / Tech}
+  - {company: netomi, name: Netomi, industry: SaaS / Tech}
+  - {company: gohighlevel, name: HighLevel, industry: SaaS / Tech}
+  - {company: pocketfm, name: Pocket FM, industry: SaaS / Tech}
+  - {company: weloglobal, name: Welo Global, industry: SaaS / Tech}
+
+ashby:
+  - {org: sarvam, name: Sarvam AI, industry: SaaS / Tech}
+  - {org: atlan, name: Atlan, industry: SaaS / Tech}
+  - {org: airwallex, name: Airwallex, industry: Fintech}
+  - {org: notion, name: Notion, industry: SaaS / Tech}
+
+workable: []
+  # - {account: example-company, name: Example Company, industry: Fintech}
+
+smartrecruiters:
+  - {id: Experian, name: Experian, industry: Fintech}
+  - {id: NielsenIQ, name: NielsenIQ, industry: Consulting}
+  - {id: BoschGroup, name: Bosch, industry: Automotive}
+  - {id: ServiceNow, name: ServiceNow, industry: SaaS / Tech}
+  - {id: Sutherland, name: Sutherland, industry: BPO / KPO}
+
+workday:
+  - {tenant: mastercard, host: wd1, site: CorporateCareers, name: Mastercard, industry: Fintech}
+  - {tenant: citi, host: wd5, site: "2", name: Citi, industry: Fintech}
+  - {tenant: ameriprise, host: wd5, site: Ameriprise, name: Ameriprise Financial, industry: Fintech}
+  - {tenant: fil, host: wd3, site: "001", name: Fidelity International, industry: Fintech}
+  - {tenant: blackrock, host: wd1, site: BlackRock_Professional, name: BlackRock, industry: Fintech}
+  - {tenant: spgi, host: wd5, site: SPGI_Careers, name: S&P Global, industry: Fintech}
+  - {tenant: travelhrportal, host: wd1, site: Jobs, name: American Express GBT, industry: Travel & Hospitality}
+  - {tenant: mmc, host: wd1, site: MMC, name: Marsh McLennan, industry: Insurance}
+  - {tenant: genpact, host: wd108, site: external_careers, name: Genpact, industry: Consulting}
+  - {tenant: gartner, host: wd5, site: EXT, name: Gartner, industry: Consulting}
+  - {tenant: rsm, host: wd1, site: RSMCareers, name: RSM, industry: Consulting}
+  - {tenant: jll, host: wd1, site: jllcareers, name: JLL, industry: Consulting}
+  - {tenant: stryker, host: wd1, site: StrykerCareers, name: Stryker, industry: Healthcare}
+  - {tenant: rockwellautomation, host: wd1, site: External_Rockwell_Automation, name: Rockwell Automation, industry: SaaS / Tech}
+  - {tenant: dxctechnology, host: wd1, site: DXCJobs, name: DXC Technology, industry: SaaS / Tech}
+  - {tenant: sprinklr, host: wd1, site: careers, name: Sprinklr, industry: SaaS / Tech}
+  - {tenant: adobe, host: wd5, site: external_experienced, name: Adobe, industry: SaaS / Tech}
