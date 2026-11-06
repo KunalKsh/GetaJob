@@ -1,56 +1,66 @@
-"""Is a job title the kind of analytics role you target?
+"""Is a job title the kind of role this person is looking for?
 
-"Analyst" alone isn't enough: Indian job boards are full of accounting, compliance, HR-ops and
-lease-abstraction roles titled "Analyst". A title counts when it names analytics work
-(data, insights, BI, reporting, product, strategy...) or closely matches a confirmed role,
-and doesn't name an unrelated function.
+Each person picks job families (Software Engineering, Finance & Accounting, Nursing...) and roles.
+A title counts when it closely matches one of their roles, or falls in one of their families
+(by that family's title words) without naming an unrelated function. "Analyst" or "Manager"
+alone is never enough.
 """
 from __future__ import annotations
-
-import re
 
 from rapidfuzz import fuzz
 
 from .dedup import norm_title
+from .taxonomy import BY_KEY, family_for_role, strip_level, title_in_family
 
-CORE = re.compile(
-    r"\bdata\b|analytics|analytical|insight|business intelligence|\bbi\b|reporting|\bmis\b|\bmi\b|"
-    r"business analyst|product analyst|strateg|decision scien|data scien|growth|pricing|"
-    r"market(?:ing)? (?:analyst|analytics|intelligence|research)|revenue (?:analyst|operations)|"
-    r"business operations|bizops|metrics|dashboard|visuali[sz]ation|research analyst|"
-    r"(?:analytics|strategy|management|business) consultant", re.I)
-
-OFF_TARGET = re.compile(
-    # engineering, IT and support
-    r"engineer|developer|architect|devops|programmer|sdet|\bqa\b|tester|testing|quality assurance|it quality|"
-    r"quality tech|security analyst|\bsoc\b|cyber|penetration|network|infrastructure|service desk|"
-    r"systems integration|professional services|managed services|deep learning|"
-    # sales, support, ops
-    r"sales executive|telecaller|tele-?sales|customer (?:care|support|service)|voice|call cent|"
-    r"sales compensation|training|"
-    # finance & accounting operations
-    r"account(?:ing|ant)|accounts payable|accounts receivable|\bap\b|\bar\b|r2r|p2p|o2c|i2c|controllership|"
-    r"treasury|\bcash\b|fund accounting|\btax\b|audit|reconciliation analyst|financial operations|"
-    r"finance & accounting|billing|credit control|securities|derivatives|settlement|"
-    r"credit analyst|underwriting|model validation|valuation|"
-    # legal, risk-compliance, HR, procurement, real estate
-    r"legal|lawyer|paralegal|compliance|\bkyc\b|\baml\b|financial crime|\bhr\b|human resources|"
-    r"people operations|payroll|recruit|talent acquisition|vendor|procurement|sourcing|"
-    r"abstraction|lease|portfolio analyst|\bgst\b|indirect tax|investor relations|facilities|property|"
-    r"fincrime|financial crime|fraud reporting|\bsar\b|enforcement|lms admin|"
-    # very senior grades (Indian titles)
-    r"general manager|\bgm\b|\bdgm\b|\bsvp\b|"
-    # creative, project management, other
-    r"creative|graphic|designer|motion|content writer|copywriter|project manager|program manager|scrum|"
-    r"workday|servicenow|salesforce (?:developer|admin)|sap (?:abap|basis|fico)|"
-    r"nurse|teacher|driver|technician|mechanic|travel consultant|claims (?:associate|processor)", re.I)
+# kept for callers that want the analytics patterns directly
+CORE = None
 
 
-def is_relevant(title: str, roles: list) -> bool:
-    if not title or OFF_TARGET.search(title):
+def role_titles(roles: list) -> list[str]:
+    return [r["title"] if isinstance(r, dict) else r for r in roles or []]
+
+
+def families_from(roles: list, families: list[str] | None = None) -> list[str]:
+    """The person's chosen families, or (for older profiles) the families their roles belong to."""
+    if families:
+        return [f for f in families if f in BY_KEY]
+    out = []
+    for t in role_titles(roles):
+        k = family_for_role(t)
+        if k and k not in out:
+            out.append(k)
+    return out
+
+
+def matches_role(title: str, roles: list, threshold: int = 85) -> bool:
+    nt = norm_title(strip_level(title))
+    if not nt:
         return False
-    if CORE.search(title):
-        return True
-    nt = norm_title(title)
-    names = [r["title"] if isinstance(r, dict) else r for r in roles or []]
-    return any(fuzz.token_sort_ratio(nt, norm_title(n)) >= 85 for n in names)
+    for r in role_titles(roles):
+        for part in r.split("/"):
+            nr = norm_title(strip_level(part))
+            if nr and (fuzz.token_sort_ratio(nt, nr) >= threshold or (len(nr.split()) >= 2 and nr in nt)):
+                return True
+    return False
+
+
+def is_relevant(title: str, roles: list, families: list[str] | None = None) -> bool:
+    if not title:
+        return False
+    if not roles and not families:
+        return True  # nothing chosen yet: don't hide anything
+    fams = families_from(roles, families)
+    for k in fams:
+        if title_in_family(title, BY_KEY[k]):
+            return True
+    # an exact-ish role match counts even outside the family patterns (custom roles),
+    # unless one of the person's families explicitly rules that kind of title out
+    if matches_role(title, roles):
+        from .taxonomy import _rx
+        return not any((ex := _rx(BY_KEY[k].get("exclude_rx", ""))) and ex.search(title) for k in fams)
+    return False
+
+
+def relevant_any(title: str, specs: list[tuple[list, list]]) -> bool:
+    """Relevant to at least one person (used while collecting, before per-person ranking)."""
+    return any(is_relevant(title, roles, fams) for roles, fams in specs)

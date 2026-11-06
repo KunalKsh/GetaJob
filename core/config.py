@@ -89,20 +89,22 @@ def key_status() -> dict[str, bool]:
 DEFAULT_PREFS: dict = {
     "confirmed": False,
     "profile": {},
+    "families": [],            # job families chosen on the profile page (empty: worked out from the roles)
     "roles": [],
     "salary_min_lpa": None,
     "salary_max_lpa": None,
     "salary_hard_filter": False,
-    "seniority": ["Analyst", "Senior Analyst", "Lead / Specialist"],
+    "seniority_bands": None,   # None: no level filter (set on the profile page from years of experience)
     "role_types": ["Full-time"],
+    "work_modes": [],          # onsite / hybrid / remote; empty means any
     "prefer_industries": [],
     "avoid_industries": [],
+    "prefer_companies": [],
     "notice_period": "Immediate joiner",
     "exclude_companies": [],
-    "exclude_title_words": ["intern", "internship", "trainee", "fresher", "director", "vice president", "vp",
-                            "head of", "chief", "principal", "partner"],
-    "ncr_cities": ["Gurugram", "Delhi", "Noida"],
-    "metro_cities": ["Bengaluru", "Hyderabad", "Mumbai", "Pune"],
+    "exclude_title_words": [],
+    "primary_cities": None,    # None: Delhi NCR (older profiles: their ncr_cities)
+    "secondary_cities": None,
     "use_llm_summary": False,
 }
 

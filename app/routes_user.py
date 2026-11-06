@@ -6,7 +6,7 @@ import re
 from datetime import date
 from urllib.parse import urlencode
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, Request, UploadFile
 from fastapi.responses import Response
 from rapidfuzz import fuzz
 
@@ -15,20 +15,22 @@ from core.config import MAX_RESUME_BYTES, MAX_RESUMES, MAX_RESUME_PAGES
 from core.dates import TIERS, today_ist
 from core.dedup import norm_title
 from core.export import top100_xlsx, tracker_csv, tracker_xlsx
-from core.locations import METRO, NCR
+from core.locations import ALL_CITIES, MAJOR_METROS, NCR_CITIES, region_label
 from core.normalize import PORTALS, make_id
-from core.resume import build_profile, extract_pdf_bytes, identity, is_pdf, same_person, suggest_roles
-from core.select import ineligible_reason, select_buckets
+from core.relevance import families_from
+from core.resume import (build_profile, default_families, detect_families, extract_pdf_bytes, identity, is_pdf,
+                         same_person, suggest_roles)
+from core.select import city_lists, ineligible_reason, select_buckets
 from core.skills import INDUSTRIES
+from core.taxonomy import BAND_HINT, BAND_NAMES, BY_KEY, FAMILIES, companies_for, default_bands
 
 from .web import client_ip, decorate, page, portals_of, redirect, require_user
 
 router = APIRouter()
 
-SENIORITY_OPTIONS = ["Associate / Junior", "Analyst", "Senior Analyst", "Lead / Specialist", "Manager"]
-ROLE_TYPE_OPTIONS = ["Full-time", "Contract", "Contract-to-hire"]
-NOTICE_OPTIONS = ["Immediate joiner", "15 days", "30 days", "60 days", "90 days"]
-ALL_CITIES = {"ncr": ["Gurugram", "Delhi", "Noida"], "metro": ["Bengaluru", "Hyderabad", "Mumbai", "Pune"]}
+ROLE_TYPE_OPTIONS = ["Full-time", "Part-time", "Contract", "Internship", "Freelance"]
+WORK_MODE_OPTIONS = ["onsite", "hybrid", "remote"]
+NOTICE_OPTIONS = ["Immediate joiner", "15 days", "30 days", "60 days", "90 days", "Currently studying"]
 
 
 def view_prefs(uid: int) -> dict:
@@ -142,22 +144,65 @@ def resume_download(rid: int, user: dict = Depends(require_user)):
 
 
 # ---------------------------------------------------------------------------- profile & roles
+def _families_of(prefs: dict, prof: dict) -> list[str]:
+    if prefs.get("families"):
+        return [k for k in prefs["families"] if k in BY_KEY]
+    if prefs.get("confirmed") and prefs.get("roles"):
+        return families_from(prefs["roles"]) or default_families(prof)
+    return default_families(prof)
+
+
+def _default_cities(prefs: dict, prof: dict) -> tuple[list[str], list[str]]:
+    if prefs.get("primary_cities") is not None or prefs.get("ncr_cities") is not None:
+        return city_lists(prefs)
+    loc = prof.get("location") or ""
+    primary = NCR_CITIES if (loc in NCR_CITIES or loc == "Delhi NCR" or not loc or loc not in ALL_CITIES) else [loc]
+    pool = NCR_CITIES + MAJOR_METROS
+    return list(primary), [c for c in pool if c not in primary][:6]
+
+
+def _role_payload(rows: list[dict]) -> list[dict]:
+    return [{"title": r["title"], "score": r["score"], "reason": r["reason"], "family": r.get("family", ""),
+             "family_name": r.get("family_name", "")} for r in rows]
+
+
 @router.get("/profile")
-def profile_page(request: Request, user: dict = Depends(require_user), msg: str = ""):
+def profile_page(request: Request, user: dict = Depends(require_user), msg: str = "", step: int = 1):
     prefs = db.get_prefs(user["id"])
     prof = prefs.get("profile") or {}
     if not prof:
         return redirect("/resumes?" + urlencode({"msg": "Upload your resume first. Your roles are suggested from it."}))
-    suggestions = suggest_roles(prof)
+    detected = prof.get("families") or detect_families(prof)
+    fams = _families_of(prefs, prof)
+    suggestions = suggest_roles(prof, fams)
     chosen = {(r["title"] if isinstance(r, dict) else r) for r in prefs.get("roles") or []}
     if not chosen:
-        chosen = {s["title"] for s in suggestions if s["score"] >= 80 and "stretch" not in s["reason"]} or \
-                 {s["title"] for s in suggestions[:6]}
+        chosen = {s["title"] for s in suggestions if s["score"] >= 75 and "stretch" not in s["reason"]} or \
+                 {s["title"] for s in suggestions[:5]}
     custom = [r for r in chosen if r not in {s["title"] for s in suggestions}]
-    return page(request, "profile.html", user=user, prefs=prefs, profile=prof, suggestions=suggestions, chosen=chosen,
-                custom="\n".join(custom), msg=msg, seniority_options=SENIORITY_OPTIONS,
-                role_type_options=ROLE_TYPE_OPTIONS, notice_options=NOTICE_OPTIONS, industries=list(INDUSTRIES),
-                all_cities=ALL_CITIES)
+    years = float(prof.get("years_experience") or 0)
+    bands = prefs.get("seniority_bands") or default_bands(years)
+    primary, secondary = _default_cities(prefs, prof)
+    fam_rows = sorted(FAMILIES, key=lambda f: -next((d["score"] for d in detected if d["key"] == f["key"]), 0))
+    fam_info = {d["key"]: d for d in detected}
+    return page(request, "profile.html", user=user, prefs=prefs, profile=prof, suggestions=suggestions,
+                chosen=chosen, custom="\n".join(custom), msg=msg, step=max(1, min(4, step)),
+                families=fam_rows, fam_info=fam_info, chosen_fams=fams,
+                company_suggestions=companies_for([f["key"] for f in FAMILIES]),
+                bands=BAND_NAMES, band_hint=BAND_HINT, chosen_bands=bands, years=years,
+                role_type_options=ROLE_TYPE_OPTIONS, work_mode_options=WORK_MODE_OPTIONS,
+                notice_options=NOTICE_OPTIONS, industries=list(INDUSTRIES), all_cities=ALL_CITIES,
+                primary=primary, secondary=secondary)
+
+
+@router.get("/api/roles")
+def roles_for_families(request: Request, f: list[str] = Query(default=[]), user: dict = Depends(require_user)):
+    """Role suggestions for the job families ticked on the profile page (no page reload)."""
+    prof = db.get_prefs(user["id"]).get("profile") or {}
+    fams = [k for k in f if k in BY_KEY][:8]
+    if not prof:
+        return {"roles": []}
+    return {"roles": _role_payload(suggest_roles(prof, fams or None))}
 
 
 @router.post("/profile")
@@ -166,9 +211,10 @@ async def profile_save(request: Request, user: dict = Depends(require_user)):
     uid = user["id"]
     prefs = db.get_prefs(uid)
     prof = prefs.get("profile") or {}
-    sugg = {s["title"]: s for s in suggest_roles(prof)} if prof else {}
+    fams = [k for k in form.getlist("families") if k in BY_KEY][:8] or (default_families(prof) if prof else [])
+    sugg = {s["title"]: s for s in suggest_roles(prof, fams)} if prof else {}
     roles = []
-    for t in form.getlist("roles")[:20]:
+    for t in form.getlist("roles")[:24]:
         t = str(t)[:80]
         s = sugg.get(t)
         roles.append({"title": t, "queries": s["queries"] if s else [t.lower()]})
@@ -177,7 +223,7 @@ async def profile_save(request: Request, user: dict = Depends(require_user)):
         if t not in {r["title"] for r in roles}:
             roles.append({"title": t, "queries": [t.lower()]})
     if not roles:
-        return redirect("/profile?msg=Pick+at+least+one+role.")
+        return redirect("/profile?step=2&msg=Pick+at+least+one+role.")
 
     def num(name):
         v = form.get(name)
@@ -186,29 +232,28 @@ async def profile_save(request: Request, user: dict = Depends(require_user)):
         except ValueError:
             return None
 
+    primary = [c for c in form.getlist("primary_cities") if c in ALL_CITIES][:20]
+    if not primary:
+        return redirect("/profile?step=4&msg=Choose+at+least+one+first-choice+city.")
+    secondary = [c for c in form.getlist("secondary_cities") if c in ALL_CITIES and c not in primary][:25]
+    for old in ("ncr_cities", "metro_cities", "seniority"):
+        prefs.pop(old, None)
     prefs.update(
-        roles=roles, confirmed=True,
+        families=fams, roles=roles, confirmed=True,
         salary_min_lpa=num("salary_min_lpa"), salary_max_lpa=num("salary_max_lpa"),
         salary_hard_filter=form.get("salary_hard_filter") == "on",
-        seniority=[s for s in form.getlist("seniority") if s in SENIORITY_OPTIONS] or prefs["seniority"],
-        role_types=[s for s in form.getlist("role_types") if s in ROLE_TYPE_OPTIONS] or prefs["role_types"],
+        seniority_bands=[b for b in form.getlist("seniority_bands") if b in BAND_NAMES] or None,
+        role_types=[s for s in form.getlist("role_types") if s in ROLE_TYPE_OPTIONS] or ["Full-time"],
+        work_modes=[m for m in form.getlist("work_modes") if m in WORK_MODE_OPTIONS],
         prefer_industries=[s for s in form.getlist("prefer_industries") if s in INDUSTRIES],
         avoid_industries=[s for s in form.getlist("avoid_industries") if s in INDUSTRIES],
         notice_period=form.get("notice_period") if form.get("notice_period") in NOTICE_OPTIONS else prefs["notice_period"],
+        prefer_companies=[x[:80] for x in _lines(form.get("prefer_companies", ""))][:40],
         exclude_companies=[x[:80] for x in _lines(form.get("exclude_companies", ""))],
-        ncr_cities=[c for c in form.getlist("ncr_cities") if c in ALL_CITIES["ncr"]],
-        metro_cities=[c for c in form.getlist("metro_cities") if c in ALL_CITIES["metro"]],
+        exclude_title_words=[w[:40] for w in _lines(form.get("exclude_title_words", ""))],
+        primary_cities=primary, secondary_cities=secondary,
         use_llm_summary=form.get("use_llm_summary") == "on",
     )
-    words = ["intern", "internship", "trainee", "fresher", "director", "vice president", "vp", "head of", "chief",
-             "principal", "partner"]
-    if "Manager" not in prefs["seniority"]:
-        words.append("senior manager")
-    if "Associate / Junior" not in prefs["seniority"]:
-        words.append("junior")
-    if form.get("exclude_title_words") is not None:
-        words = [w[:40] for w in _lines(form.get("exclude_title_words", ""))]
-    prefs["exclude_title_words"] = words
     db.save_prefs(uid, prefs)
     pipeline.score_user(uid, prefs)
     return redirect("/dashboard?saved=1")
@@ -216,9 +261,9 @@ async def profile_save(request: Request, user: dict = Depends(require_user)):
 
 # ---------------------------------------------------------------------------- dashboard
 @router.get("/dashboard")
-def dashboard(request: Request, user: dict = Depends(require_user), tab: str = "ncr", city: str = "", portal: str = "",
-              role: str = "", mode: str = "", status: str = "", tier: str = "", min_fit: int = 0, salary: str = "",
-              sort: str = "tier", saved: int = 0):
+def dashboard(request: Request, user: dict = Depends(require_user), tab: str = "primary", city: str = "",
+              portal: str = "", role: str = "", mode: str = "", status: str = "", tier: str = "", min_fit: int = 0,
+              salary: str = "", sort: str = "tier", saved: int = 0, preferred: int = 0, q: str = ""):
     uid = user["id"]
     prefs = view_prefs(uid)
     if not db.list_resumes(uid):
@@ -229,7 +274,8 @@ def dashboard(request: Request, user: dict = Depends(require_user), tab: str = "
     tracker = db.tracker_all(uid)
     jobs = my_jobs(uid, prefs)
     buckets = select_buckets(jobs, prefs, today)
-    tab = tab if tab in (NCR, METRO) else NCR
+    tab = {"ncr": "primary", "metro": "secondary"}.get(tab, tab)
+    tab = tab if tab in buckets else "primary"
     b = buckets[tab]
     rows = [decorate(j, today, tracker) for j in b["jobs"]]
     roles = [r["title"] for r in prefs.get("roles") or []]
@@ -249,6 +295,12 @@ def dashboard(request: Request, user: dict = Depends(require_user), tab: str = "
         rows = [j for j in rows if str(j["tier"]) == tier]
     if min_fit:
         rows = [j for j in rows if (j.get("fit_score") or 0) >= min_fit]
+    if preferred:
+        rows = [j for j in rows if (j.get("fit_detail") or {}).get("preferred")]
+    if q:
+        ql = q.lower()[:80]
+        rows = [j for j in rows if ql in (j.get("title") or "").lower() or ql in (j.get("company") or "").lower()
+                or any(ql in s.lower() for s in (j.get("fit_detail") or {}).get("matched") or [])]
     if salary == "stated":
         rows = [j for j in rows if j.get("salary_min_lpa") is not None]
     elif salary == "unknown":
@@ -263,13 +315,29 @@ def dashboard(request: Request, user: dict = Depends(require_user), tab: str = "
         rows.sort(key=lambda j: j.get("posted_date") or "", reverse=True)
     cities = sorted({c for j in b["jobs"] for c in (j.get("cities") or [j.get("city")]) if c})
     f = dict(city=city, portal=portal, role=role, mode=mode, status=status, tier=tier, min_fit=min_fit, salary=salary,
-             sort=sort)
+             sort=sort, preferred=preferred, q=q)
     review_count = sum(1 for j in jobs if ineligible_reason(j, prefs, today) in ("date_unknown", "not_verified")
                        and j.get("status") not in ("expired", "dead"))
+    all_chosen = b["jobs"]
+    stats = {
+        "new": sum(1 for j in all_chosen if j.get("new_since_refresh")),
+        "fresh": b["tiers"].get(1, 0),
+        "avg_fit": round(sum(j.get("fit_score") or 0 for j in all_chosen) / len(all_chosen)) if all_chosen else 0,
+        "preferred": sum(1 for j in all_chosen if (j.get("fit_detail") or {}).get("preferred")),
+        "applied": sum(1 for j in all_chosen if (tracker.get(j["id"]) or {}).get("status") not in (None, "", "New")),
+        "gaps": _top_gaps(all_chosen),
+    }
     return page(request, "dashboard.html", user=user, prefs=prefs, tab=tab, bucket=b, buckets=buckets, rows=rows,
+                stats=stats, fam_names=[BY_KEY[k]["name"] for k in families_from(prefs.get("roles") or [], prefs.get("families"))],
                 roles=roles, cities=cities, portals=PORTALS, f=f, qs=urlencode({k: v for k, v in f.items() if v}),
                 tiers=TIERS, saved=saved, review_count=review_count, total_jobs=len(jobs),
                 llm_on=prefs.get("use_llm_summary") and llm.available())
+
+
+def _top_gaps(jobs: list[dict], n: int = 6) -> list[tuple[str, int]]:
+    from collections import Counter
+    c = Counter(g.replace(" (nice to have)", "") for j in jobs for g in (j.get("fit_detail") or {}).get("gaps") or [])
+    return c.most_common(n)
 
 
 @router.get("/review")

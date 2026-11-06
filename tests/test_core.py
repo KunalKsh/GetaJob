@@ -5,7 +5,7 @@ import pytest
 from core.config import IST
 from core.dates import age_days, parse_posted, tier_for_age
 from core.dedup import dedupe, merge, norm_company, norm_title, same_posting
-from core.locations import METRO, NCR, map_location
+from core.locations import METRO, NCR, REMOTE, map_location
 from core.normalize import make_job, parse_experience, parse_salary, portal_from_url
 from core.scoring import score_job
 from core.select import select_buckets
@@ -70,8 +70,10 @@ def test_tiers(age, tier):
     ("Thane", "Mumbai", METRO),
     ("Secunderabad", "Hyderabad", METRO),
     ("Hinjewadi, Pune", "Pune", METRO),
-    ("Chennai", None, None),
-    ("Remote", None, None),
+    ("Chennai", "Chennai", METRO),
+    ("Trivandrum, Kerala", "Thiruvananthapuram", METRO),
+    ("Remote", "Remote", REMOTE),
+    ("Singapore", None, None),
 ])
 def test_location_mapping(raw, city, bucket):
     loc = map_location(raw)
@@ -184,7 +186,8 @@ def test_scam_flags():
 
 # ------------------------------------------------------------------ bucket selection
 PREFS = {"bucket_size": 50, "max_age_days": 30, "exclude_companies": ["Sample Excluded Co"], "exclude_title_words": ["director"],
-         "salary_hard_filter": True, "salary_min_lpa": 12, "salary_max_lpa": 18, "roles": [], "profile": {}}
+         "salary_hard_filter": True, "salary_min_lpa": 12, "salary_max_lpa": 18, "roles": [{"title": "Data Analyst"}],
+         "profile": {}}
 
 
 def _sel_job(i, age, fit, bucket=NCR, **kw):
@@ -198,7 +201,7 @@ def _sel_job(i, age, fit, bucket=NCR, **kw):
 def test_selection_fills_by_tier_then_fit_and_caps_at_50():
     jobs = [_sel_job(i, age=20, fit=99) for i in range(30)]           # tier 4, very high fit
     jobs += [_sel_job(100 + i, age=2, fit=40 + i) for i in range(40)]  # tier 1, lower fit
-    out = select_buckets(jobs, PREFS, TODAY)[NCR]
+    out = select_buckets(jobs, PREFS, TODAY)["primary"]
     assert out["count"] == 50
     assert out["shortfall"] is None
     chosen = out["jobs"]
@@ -218,7 +221,7 @@ def test_selection_under_50_reports_real_count_and_reasons():
     jobs.append(_sel_job(56, age=1, fit=90, title="Director, Analytics"))      # outside seniority band
     jobs.append(_sel_job(57, age=1, fit=90, status="expired"))
     jobs.append(_sel_job(58, age=1, fit=90, title="Senior Fund Accounting Analyst"))  # not an analytics role
-    out = select_buckets(jobs, PREFS, TODAY)[NCR]
+    out = select_buckets(jobs, PREFS, TODAY)["primary"]
     assert out["count"] == 13
     assert "Only 13" in out["shortfall"]
     assert out["reasons"] == {"too_old": 1, "date_unknown": 1, "not_verified": 1, "excluded_company": 1,
@@ -226,7 +229,7 @@ def test_selection_under_50_reports_real_count_and_reasons():
 
 
 def test_unknown_salary_passes_hard_filter():
-    out = select_buckets([_sel_job(1, age=1, fit=80)], PREFS, TODAY)[NCR]
+    out = select_buckets([_sel_job(1, age=1, fit=80)], PREFS, TODAY)["primary"]
     assert out["count"] == 1
 
 

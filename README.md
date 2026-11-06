@@ -1,11 +1,11 @@
 # GetaJob
 
-An invite-only website that finds fresh analytics job postings in India, checks that each one is still live, and ranks them against **your own resume**.
+An invite-only website that finds fresh job postings in India for **any profession**, checks that each one is still live, and ranks them against **your own resume**.
 
-Each person uploads 1–5 versions of their resume. GetaJob suggests the roles they fit and asks them to confirm. It then searches company career sites and job APIs and builds two lists:
+Each person uploads 1–5 versions of their resume. GetaJob reads it and works out which kinds of jobs it points to (24 job families: software, data, finance, sales, HR, nursing, design, engineering, teaching and more). A four-step wizard then asks what the person wants: job types, roles, preferred companies, and location, level and pay. Everything is pre-filled from the resume. GetaJob then searches company career sites and job APIs and builds two lists:
 
-- **Up to 50 jobs in Delhi NCR** (Gurugram, Delhi, Noida)
-- **Up to 50 jobs in the other metros** (Bengaluru, Hyderabad, Mumbai, Pune)
+- **Up to 50 jobs in the person's first-choice cities** (any of 25 Indian cities, or remote)
+- **Up to 50 jobs in the other cities they'd consider**
 
 Every posting is **30 days old or less** and passed a live check. The lists are ordered freshest first (posted within 3, 7, 15, then 30 days), and by fit score within each group. Each job card also says which resume version to send.
 
@@ -19,10 +19,13 @@ GetaJob never applies for anyone, never logs in to job portals, and never guesse
 |---|---|
 | **Access** | Anyone can request access. The admin (`ADMIN_EMAIL`) approves or declines requests, invites people directly, disables accounts, issues password-reset links and promotes other admins. Invite and reset links work once and expire after 7 days. |
 | **Resumes** | PDF only, up to 5 per person, 5 MB each. Every upload must belong to the same person: a new file has to match an email address or the name on the resumes already uploaded. The skills from all versions are merged, and phone numbers, emails and links are kept out of the saved profile. |
-| **Roles & filters** | 8–12 suggested roles, each with evidence from the resume. Also: salary range (optional hard filter), seniority band, industries, cities, excluded companies. |
+| **Job types** | 24 job families, each scored against the resume (skills found plus titles held). People can pick any of them, not just the ones their resume points to. |
+| **Roles** | Suggested from the chosen job types and ranked by resume evidence, with senior and manager versions when the experience calls for it, plus titles the person has held. Credentials count: a nurse isn't offered doctor roles. People can add any role of their own. |
+| **Companies** | Optional preferred companies (+5 fit and a "Preferred" tag; their public Greenhouse, Lever or Ashby boards are looked up and searched directly) and companies to leave out. Suggestions match the chosen job types. |
+| **Level, place & pay** | Seniority levels pre-set from years of experience (titles and stated experience outside them are left out), first-choice and other cities including remote, employment type, work mode, salary range (optional hard filter) and 23 industries to prefer or avoid. |
 | **Search** | Public job-board JSON from 67 companies (Greenhouse, Lever, Ashby, Workable, SmartRecruiters, Workday), plus the Adzuna, Jooble, JSearch and SerpAPI APIs when keys are set. Searches run for the roles people chose, site-wide, every 12 hours. |
 | **Checks** | Link must load. "Position filled" wording is detected. Title and company must match. The posting date is re-read from the job page. Reposts are flagged. Scam signs (payment requests, personal email addresses) are flagged. Login-walled pages can be confirmed by the user with one click. |
-| **Fit score** | Skills 40 · Title & seniority 20 · Experience 15 · Salary 10 · Industry 10 · Location 5. Every card shows the matched skills and the gaps. |
+| **Fit score** | Skills 40 · Title & seniority 20 · Experience 15 · Salary 10 · Industry 10 · Location 5 (+5 for a preferred company). Skills come from a 270-skill vocabulary plus anything listed in the resume's skills section. Every card shows the matched skills and the gaps. |
 | **Per person** | Fit scores, the tracker (New → Offer, notes, follow-up dates), manual confirmations, imports and alert-email uploads are private to each account. |
 | **Exports** | The top 100 and the tracker, to Excel or CSV. |
 
@@ -102,10 +105,11 @@ python -m pytest -q                                                  # SQLite
 TEST_DATABASE_URL=postgresql://user:pass@host/db python -m pytest -q # Postgres
 ```
 
-105 tests cover the following, and the GitHub workflow runs them against both SQLite and Postgres on every push:
+133 tests cover the following, and the GitHub workflow runs them against both SQLite and Postgres on every push:
 - date parsing, freshness tiers, de-duplication and city mapping
 - expiry and login-wall detection, salary and experience parsing
 - role relevance, scoring, and choosing the 50 per list (including the under-50 case)
+- software, nursing, accounting and sales resumes: job types, roles, levels, cities and preferred companies
 - alert-email and resume parsing
 - a full offline update in demo mode
 - sign-in, CSRF, rate limits, admin-only pages, invite single-use, upload rules and per-user isolation, account deletion
@@ -115,7 +119,8 @@ TEST_DATABASE_URL=postgresql://user:pass@host/db python -m pytest -q # Postgres
 ```
 app/        FastAPI app: routes_public (landing, sign-in, request access, invites), routes_user, routes_admin,
             templates/, static/
-core/       db (SQLAlchemy: Postgres/SQLite), auth, resume parsing, normalize, dedup, verify, scoring,
+core/       taxonomy (job families, roles, skills, levels), db (SQLAlchemy: Postgres/SQLite), auth, resume parsing,
+            normalize, dedup, verify, scoring,
             select, relevance, pipeline (update + per-user scoring), export
 sources/    one adapter per source (ATS boards, aggregator APIs, alert emails, manual import)
 config/     employers.yaml: companies searched directly (editable on the Admin page)

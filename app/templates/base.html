@@ -6,7 +6,7 @@
 <meta name="csrf-token" content="{{ csrf }}">
 <title>{% block title %}{{ APP_NAME }}{% endblock %}</title>
 <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="/static/style.css">
+<link rel="stylesheet" href="/static/style.css?v=2">
 </head>
 <body>
 <header class="topbar">
@@ -19,7 +19,7 @@
       <a href="/review" class="{{ 'on' if nav=='review' }}">Needs review</a>
       <a href="/import" class="{{ 'on' if nav=='import' }}">Import</a>
       <a href="/resumes" class="{{ 'on' if nav=='resumes' }}">Resumes</a>
-      <a href="/profile" class="{{ 'on' if nav=='profile' }}">Roles &amp; filters</a>
+      <a href="/profile" class="{{ 'on' if nav=='profile' }}">Preferences</a>
       <a href="/health" class="{{ 'on' if nav=='health' }}">Sources</a>
       {% if user.role == 'admin' %}<a href="/admin" class="{{ 'on' if nav=='admin' }}">Admin</a>{% endif %}
     </nav>
@@ -54,6 +54,6 @@
 <footer class="foot">
   <span>{{ APP_NAME }} finds and checks job postings. It never applies or messages anyone for you.</span>
 </footer>
-<script src="/static/app.js"></script>
+<script src="/static/app.js?v=2"></script>
 </body>
 </html>

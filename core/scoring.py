@@ -8,9 +8,10 @@ import re
 
 from rapidfuzz import fuzz
 
-from .dedup import norm_title
-from .relevance import CORE
-from .skills import SOFT_GAP_EXCLUDE, _COMPILED, detect_industries
+from .dedup import norm_company, norm_title
+from .relevance import families_from, matches_role
+from .skills import SOFT_GAP_EXCLUDE, all_patterns, detect_industries
+from .taxonomy import BY_KEY, families_of_title, level_fit, strip_level, title_in_family
 
 WEIGHTS = {"skills": 40, "title": 20, "experience": 15, "salary": 10, "industry": 10, "location": 5}
 _MUST_HDR = re.compile(r"(requirements?|qualifications?|what you(?:'|’)?ll need|what we(?:'|’)?re looking for|"
@@ -18,28 +19,10 @@ _MUST_HDR = re.compile(r"(requirements?|qualifications?|what you(?:'|’)?ll nee
                        r"eligibility|key skills|minimum qualifications|basic qualifications)", re.I)
 _NICE_HDR = re.compile(r"(nice[- ]to[- ]have|good[- ]to[- ]have|preferred|bonus|plus points?|desirable|"
                        r"preferred qualifications|additional skills)", re.I)
-_ANALYTIC_TITLE = re.compile(r"analy|insight|intelligence|\bbi\b|strategy|data|reporting|\bmis\b|decision|pricing|"
-                             r"growth|operations|consult", re.I)
-
-LEVELS = [  # (pattern, label, fit for ~3 years of experience)
-    (r"\b(intern|trainee|apprentice|fresher)\b", "Entry", 0.2),
-    (r"\b(chief|vice president|vp|director|head)\b", "Director+", 0.05),
-    (r"\b(principal|staff)\b", "Principal", 0.3),
-    (r"\b(assistant|asst\.?|deputy) manager\b", "Assistant Manager", 0.95),
-    (r"\bsenior manager\b", "Senior Manager", 0.3),
-    (r"\b(manager|mgr)\b", "Manager", 0.55),
-    (r"\b(lead|team lead)\b", "Lead", 0.8),
-    (r"\b(senior|sr)\b", "Senior", 1.0),
-    (r"\b(associate|junior|jr)\b", "Associate", 0.85),
-]
 
 
-def seniority(title: str) -> tuple[str, float]:
-    t = (title or "").lower()
-    for pat, label, fit in LEVELS:
-        if re.search(pat, t):
-            return label, fit
-    return "Mid", 1.0
+def seniority(title: str, years: float = 3) -> tuple[str, float]:
+    return level_fit(title, years)
 
 
 def split_requirements(desc: str) -> tuple[str, str, str]:
@@ -59,13 +42,20 @@ def split_requirements(desc: str) -> tuple[str, str, str]:
     return "\n".join(must), "\n".join(nice), "\n".join(other)
 
 
-def _skills_in(text: str) -> set[str]:
-    return {name for name, pats in _COMPILED.items() if any(p.search(text) for p in pats)}
+def _skills_in(text: str, extra: list[str] | None = None) -> set[str]:
+    return {name for name, pats in all_patterns(extra).items() if any(p.search(text) for p in pats)}
+
+
+def preferred_company(company: str, prefer: list[str]) -> bool:
+    nc = norm_company(company or "")
+    return bool(nc) and any(p and norm_company(p) and (norm_company(p) == nc or norm_company(p) in nc.split()
+                                                         or nc.startswith(norm_company(p))) for p in prefer or [])
 
 
 def score_job(job: dict, prefs: dict) -> tuple[int, dict]:
     prof = prefs.get("profile") or {}
     have = set(prof.get("skills") or [])
+    extra = prof.get("custom_skills") or []
     yrs = float(prof.get("years_experience") or 0)
     desc = job.get("description") or ""
     title = job.get("title") or ""
@@ -74,12 +64,12 @@ def score_job(job: dict, prefs: dict) -> tuple[int, dict]:
     # ---- skills (40)
     must_t, nice_t, other_t = split_requirements(desc)
     if must_t or nice_t:
-        must = _skills_in(must_t + "\n" + title)
-        nice = _skills_in(nice_t) - must
-        other = _skills_in(other_t) - must - nice
+        must = _skills_in(must_t + "\n" + title, extra)
+        nice = _skills_in(nice_t, extra) - must
+        other = _skills_in(other_t, extra) - must - nice
         must |= other  # skills named in duties are expected too
     else:
-        must, nice = _skills_in(desc + "\n" + title), set()
+        must, nice = _skills_in(desc + "\n" + title, extra), set()
     wanted = len(must) * 2 + len(nice)
     if wanted == 0 or len(desc) < 250:
         skill_pts = WEIGHTS["skills"] * 0.5
@@ -92,11 +82,14 @@ def score_job(job: dict, prefs: dict) -> tuple[int, dict]:
 
     # ---- title & seniority (20)
     roles = [r["title"] if isinstance(r, dict) else r for r in prefs.get("roles") or []]
-    nt = norm_title(title)
-    sim = max([fuzz.token_set_ratio(nt, norm_title(r)) for r in roles] or [0]) / 100
-    if CORE.search(title):
-        sim = max(sim, 0.6)  # an analytics title, even if worded differently from your roles
-    level, lvl_fit = seniority(title)
+    nt = norm_title(strip_level(title))
+    sim = max([fuzz.token_set_ratio(nt, norm_title(strip_level(p))) for r in roles for p in r.split("/")] or [0]) / 100
+    if matches_role(title, roles):
+        sim = max(sim, 0.9)
+    fams = families_from(prefs.get("roles") or [], prefs.get("families"))
+    if any(title_in_family(title, BY_KEY[k]) for k in fams):
+        sim = max(sim, 0.6)  # in one of your job families, even if worded differently from your roles
+    level, lvl_fit = seniority(title, yrs)
     title_pts = WEIGHTS["title"] * (0.7 * sim + 0.3 * lvl_fit)
     if lvl_fit < 0.6:
         notes.append(f"{level}-level title: a stretch at {yrs:g} years")
@@ -146,21 +139,31 @@ def score_job(job: dict, prefs: dict) -> tuple[int, dict]:
         ind_pts = WEIGHTS["industry"] * 0.5
 
     # ---- location & work mode (5)
-    city = job.get("city")
-    if city == "Gurugram":
-        loc_pts = 5
-    elif city in ("Delhi", "Noida", "Delhi NCR"):
-        loc_pts = 4.5
-    elif city:
-        loc_pts = 3
+    primary = set(prefs.get("primary_cities") or [])
+    secondary = set(prefs.get("secondary_cities") or [])
+    jc = set(job.get("cities") or ([job["city"]] if job.get("city") else []))
+    from .locations import NCR_CITIES
+    if "Delhi NCR" in jc:
+        jc |= set(NCR_CITIES)
+    if primary and jc & primary:
+        loc_pts = 5 if job.get("city") in primary else 4.5
+    elif secondary and jc & secondary:
+        loc_pts = 3.5
+    elif job.get("city"):
+        loc_pts = 3 if not (primary or secondary) else 2
     else:
         loc_pts = 2
-    if job.get("work_mode") in ("remote", "hybrid"):
-        loc_pts = min(5, loc_pts + 0.5)
+    modes = set(prefs.get("work_modes") or [])
+    if modes and job.get("work_mode") in ("onsite", "hybrid", "remote"):
+        loc_pts = min(5, loc_pts + 0.5) if job["work_mode"] in modes else max(0, loc_pts - 1.5)
 
     parts = {"skills": skill_pts, "title": title_pts, "experience": exp_pts, "salary": sal_pts,
              "industry": ind_pts, "location": loc_pts}
     score = int(round(sum(parts.values())))
+    pref_co = preferred_company(job.get("company"), prefs.get("prefer_companies"))
+    if pref_co:
+        score += 5
+        notes.append("A company you prefer (+5)")
     detail = {
         "parts": {k: round(v, 1) for k, v in parts.items()},
         "matched": matched,
@@ -170,37 +173,33 @@ def score_job(job: dict, prefs: dict) -> tuple[int, dict]:
         "salary_note": sal_note,
         "industries": inds[:2],
         "notes": notes,
+        "preferred": pref_co,
     }
     return max(0, min(100, score)), detail
 
 
-VARIANT_TITLE_RULES = [
-    ("Product Analyst", re.compile(r"product|growth|experiment|user|app\b|lifecycle|crm|retention", re.I)),
-    ("Business Intelligence", re.compile(r"\bbi\b|business intelligence|reporting|\bmis\b|dashboard|power ?bi|tableau|"
-                                         r"visuali|data management|\bmi\b", re.I)),
-    ("Strategy & Consulting", re.compile(r"strateg|consult|advisory|pricing|business operations|bizops|revenue|"
-                                         r"planning|research|intelligence & advisory", re.I)),
-]
-
-
 def pick_resume(job: dict, prefs: dict) -> str:
-    """Which of the user's resume versions to send: a version whose focus matches the job title, else the one
-    whose skills overlap the job description most (a general version wins close calls)."""
+    """Which resume version to send: one aimed at this exact role, else one aimed at the job's family,
+    else the one whose skills overlap the job description most (a general version wins close calls)."""
     variants = (prefs.get("profile") or {}).get("variants") or []
     if not variants:
         return ""
     if len(variants) == 1:
         return variants[0]["label"]
     title = job.get("title") or ""
-    for focus, rx in VARIANT_TITLE_RULES:
-        if rx.search(title):
-            hit = next((v for v in variants if v.get("focus") == focus), None)
-            if hit:
-                return hit["label"]
-    jd = set(job.get("skills_extracted") or [])
-    general = next((v for v in variants if v.get("focus") in ("General", "Analyst")), variants[0])
-    best, best_n = general["label"], len(jd & set(general.get("skills") or [])) + 1
     for v in variants:
+        if v.get("focus") not in (None, "", "General") and v.get("focus_family") and matches_role(title, [v["focus"]], 80):
+            return v["label"]
+    fams = families_of_title(title)
+    jd = set(job.get("skills_extracted") or [])
+    in_fam = [v for v in variants if v.get("focus_family") and v["focus_family"] in fams
+              and v.get("focus") == BY_KEY[v["focus_family"]]["name"]]
+    if len(in_fam) == 1:
+        return in_fam[0]["label"]
+    general = next((v for v in variants if v.get("focus") in ("General", "Analyst", "")), variants[0])
+    pool = in_fam or variants
+    best, best_n = general["label"], len(jd & set(general.get("skills") or [])) + 1
+    for v in pool:
         n = len(jd & set(v.get("skills") or []))
         if v is not general and n > best_n:
             best, best_n = v["label"], n

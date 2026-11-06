@@ -54,6 +54,13 @@ def run_refresh(trigger: str = "manual") -> dict | None:
         prefs = search_prefs(settings, profiles)
         ctx = Ctx(prefs=prefs, http=http, demo=bool(settings.get("demo_mode")), now=started)
         db.clear_new_flags()
+        if not ctx.demo and prefs.get("prefer_companies"):
+            _set("collecting", "Looking up career boards for preferred companies")
+            try:
+                from sources.discover import discover_boards
+                discover_boards(http, prefs["prefer_companies"])
+            except Exception:
+                log.exception("career-board lookup failed")
 
         # ---------------------------------------------------------------- 1. collect
         _set("collecting", "Searching all sources")
@@ -205,25 +212,33 @@ def run_refresh(trigger: str = "manual") -> dict | None:
 
 
 DEFAULT_QUERY_ROLES = [{"title": t, "queries": [t.lower()]} for t in
-                       ("Business Analyst", "Data Analyst", "Product Analyst", "Business Intelligence Analyst",
-                        "Senior Data Analyst", "Strategy Analyst")]
+                       ("Business Analyst", "Data Analyst", "Software Engineer", "Product Manager",
+                        "Financial Analyst", "Sales Manager", "HR Executive", "Digital Marketing Executive")]
 
 
 def search_prefs(settings: dict, profiles: list[tuple[int, dict]]) -> dict:
-    """What to search for: the roles most people asked for (capped) in every city anyone chose."""
+    """What to search for: the roles most people asked for (capped), in every city anyone chose, and
+    each person's roles and job families so a posting is kept when it is relevant to anyone."""
+    from .select import city_lists
     count, first, pos = Counter(), {}, {}
+    specs, cities = [], []
     for _, p in profiles:
-        for i, r in enumerate(p.get("roles") or []):
-            r = r if isinstance(r, dict) else {"title": r, "queries": [r.lower()]}
+        rs = [r if isinstance(r, dict) else {"title": r, "queries": [r.lower()]} for r in p.get("roles") or []]
+        for i, r in enumerate(rs):
             count[r["title"]] += 1
             pos[r["title"]] = min(pos.get(r["title"], 99), i)
             first.setdefault(r["title"], r)
+        specs.append((rs, p.get("families") or []))
+        a, b = city_lists(p)
+        cities += [c for c in a + b if c not in cities]
     ordered = sorted(count, key=lambda t: (-count[t], pos[t]))[: int(settings.get("max_query_roles") or 14)]
     roles = [first[t] for t in ordered] or DEFAULT_QUERY_ROLES
-    ncr = sorted({c for _, p in profiles for c in p.get("ncr_cities") or []}) or ["Gurugram", "Delhi", "Noida"]
-    metro = sorted({c for _, p in profiles for c in p.get("metro_cities") or []}) or ["Bengaluru", "Hyderabad",
-                                                                                         "Mumbai", "Pune"]
-    return {**settings, "roles": roles, "ncr_cities": ncr, "metro_cities": metro}
+    if not specs:
+        specs = [(DEFAULT_QUERY_ROLES, [])]
+    if not cities:
+        cities = ["Gurugram", "Delhi", "Noida", "Bengaluru", "Hyderabad", "Mumbai", "Pune"]
+    prefer = sorted({c for _, p in profiles for c in p.get("prefer_companies") or []})
+    return {**settings, "roles": roles, "cities": cities, "relevance_specs": specs, "prefer_companies": prefer}
 
 
 def visible_to(job: dict, uid: int) -> bool:
@@ -268,7 +283,7 @@ def reverify_one(job_id: str, uid: int | None = None) -> dict | None:
         return None
     http = Http()
     try:
-        ctx = Ctx(prefs={**settings, "roles": [], "ncr_cities": [], "metro_cities": []}, http=http,
+        ctx = Ctx(prefs={**settings, "roles": [], "cities": []}, http=http,
                   demo=bool(settings.get("demo_mode")))
         if not (job.get("apply_url") or job.get("source_url")):
             res = result(UNVERIFIABLE, "No link to check: confirm it yourself")
@@ -286,6 +301,28 @@ def reverify_one(job_id: str, uid: int | None = None) -> dict | None:
         return job
     finally:
         http.close()
+
+
+def upgrade_profiles():
+    """Rebuild saved profiles made by an older version of the resume parser (from the stored resume text)."""
+    from .resume import PROFILE_VERSION, build_profile
+    for u in db.list_users():
+        try:
+            prefs = db.get_prefs(u["id"])
+            if not prefs.get("profile") or prefs["profile"].get("v") == PROFILE_VERSION:
+                continue
+            rows = db.list_resumes(u["id"], with_text=True)
+            if rows:
+                prefs["profile"] = build_profile({r["filename"]: r["text"] for r in rows})
+                db.save_prefs(u["id"], prefs)
+                log.info("rebuilt profile for user %s", u["id"])
+        except Exception:
+            log.exception("profile upgrade for user %s failed", u.get("id"))
+
+
+def startup_tasks():
+    upgrade_profiles()
+    rescore_everyone()
 
 
 def rescore_everyone():

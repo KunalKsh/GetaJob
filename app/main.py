@@ -62,7 +62,7 @@ def startup():
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s", handlers=handlers)
     db.init_db()
     bootstrap_admin()
-    threading.Thread(target=pipeline.rescore_everyone, daemon=True, name="rescore").start()
+    threading.Thread(target=pipeline.startup_tasks, daemon=True, name="rescore").start()
     try:
         schedule()
     except Exception:

@@ -40,7 +40,7 @@ def test_password_hashing():
     assert auth.password_problem("a-good-passphrase") is None
 
 
-def test_tokens_are_single_use_and_stored_hashed():
+def test_tokens_are_single_use_and_stored_hashed(app_client):
     tok = db.create_token("someone@example.com", "invite", None)
     assert db.peek_token(tok)
     assert tok not in str(db.list_invites())
@@ -171,3 +171,33 @@ def test_delete_account_removes_data(admin):
                                         "confirm_text": "DELETE"})
     assert "Account deleted" in r.text
     assert db.get_user(uid) is None and db.list_resumes(uid) == []
+
+
+def test_preferences_wizard_for_a_non_analyst(admin):
+    from tests.sample_resumes import NURSE
+    c, _ = invite_and_register(admin, "priya.nurse@example.com", "Priya Nair")
+    text = NURSE.replace("priya@example.com", "priya.nurse@example.com").replace("–", "-").replace("▪", "-")
+    lines = text.splitlines()
+    r = upload(c, [("Priya_Staff_Nurse.pdf", make_pdf(lines))])
+    assert r.headers["location"].startswith("/profile")
+    page = c.get("/profile").text
+    assert "Healthcare &amp; Life Sciences" in page and 'value="healthcare" checked' in page
+    assert "ICU / Critical Care Nurse" in page and 'value="Kochi" data-city-group="p" checked' in page
+    roles = c.get("/api/roles?f=healthcare&f=education").json()["roles"]
+    assert {"healthcare", "education"} <= {r["family"] for r in roles}
+    assert c.get("/api/roles?f=healthcare", headers={"cookie": ""}).status_code in (200, 401)
+    form = {"csrf_token": csrf_of(c, "/profile"), "families": ["healthcare"], "roles": ["Staff Nurse"],
+            "custom_roles": "Infection Control Nurse", "primary_cities": ["Kochi"], "secondary_cities": ["Remote", "Kochi"],
+            "seniority_bands": ["Mid level", "Senior"], "role_types": ["Full-time"], "work_modes": ["onsite"],
+            "prefer_companies": "Apollo Hospitals\nAster DM", "exclude_title_words": "night shift"}
+    r = c.post("/profile", data=form, follow_redirects=False)
+    assert r.headers["location"] == "/dashboard?saved=1"
+    p = db.get_prefs(db.get_user_by_email("priya.nurse@example.com")["id"])
+    assert p["families"] == ["healthcare"] and p["primary_cities"] == ["Kochi"] and p["secondary_cities"] == ["Remote"]
+    assert [r["title"] for r in p["roles"]] == ["Staff Nurse", "Infection Control Nurse"]
+    assert p["prefer_companies"] == ["Apollo Hospitals", "Aster DM"] and p["exclude_title_words"] == ["night shift"]
+    d = c.get("/dashboard").text
+    assert "Kochi" in d and "First-choice cities" in d and "Edit preferences" in d
+    # nothing chosen for cities is refused
+    bad = c.post("/profile", data={**form, "primary_cities": []}, follow_redirects=False)
+    assert "step=4" in bad.headers["location"]

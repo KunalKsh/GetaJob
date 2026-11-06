@@ -1,66 +1,131 @@
 {% extends "base.html" %}
-{% block title %}Roles &amp; filters · {{ APP_NAME }}{% endblock %}
+{% block title %}Job preferences · {{ APP_NAME }}{% endblock %}
 {% block content %}
-<div>
-  <h1>Roles and filters</h1>
-  <p class="muted">Suggested from your resumes ({{ profile.years_experience }} years, {{ profile.skills|length }} skills). Saving re-ranks your lists straight away; new roles are searched from the next update.</p>
+<div class="pagehead">
+  <div>
+    <p class="eyebrow">Built from your resume{% if profile.source_files|length > 1 %}s{% endif %}</p>
+    <h1>What are you looking for?</h1>
+    <p class="muted">{{ profile.years_experience }} years of experience · {{ profile.skills|length }} skills found{% if profile.current_title %} · now {{ profile.current_title }}{% endif %}. Everything below is pre-filled from your resume; change anything that isn't right.</p>
+  </div>
 </div>
-{% if msg %}<div class="notice">{{ msg }}</div>{% endif %}
-<form method="post" action="/profile" style="display:grid;gap:16px">
+{% if msg %}<div class="notice warn">{{ msg }}</div>{% endif %}
+
+<form method="post" action="/profile" class="wizard" id="wizard" data-step="{{ step }}">
   <input type="hidden" name="csrf_token" value="{{ csrf }}">
-  <section class="panel">
-    <h2>Target roles</h2>
-    <div class="tablewrap">
-      <table>
-        <thead><tr><th>Keep</th><th>Role</th><th>Fit</th><th>Why</th></tr></thead>
-        <tbody>
-        {% for s in suggestions %}
-          <tr>
-            <td><input type="checkbox" id="role-{{ loop.index }}" name="roles" value="{{ s.title }}" {{ 'checked' if s.title in chosen }}></td>
-            <td><label for="role-{{ loop.index }}"><b>{{ s.title }}</b></label></td>
-            <td class="num">{{ s.score }}</td>
-            <td class="small">{{ s.reason }}</td>
-          </tr>
-        {% endfor %}
-        </tbody>
-      </table>
+  <ol class="stepper" aria-label="Steps">
+    <li><button type="button" data-goto="1"><span>1</span>Job types</button></li>
+    <li><button type="button" data-goto="2"><span>2</span>Roles</button></li>
+    <li><button type="button" data-goto="3"><span>3</span>Companies</button></li>
+    <li><button type="button" data-goto="4"><span>4</span>Location, level &amp; pay</button></li>
+  </ol>
+
+  {# ------------------------------------------------------------ step 1 #}
+  <section class="step panel" data-step="1" aria-labelledby="s1">
+    <div>
+      <h2 id="s1">Which kinds of jobs do you want?</h2>
+      <p class="muted small">Pick one or more. The match shows how strongly your resume points to each; you can choose any of them.</p>
     </div>
-    <label class="f" for="custom_roles">Add your own roles (one per line)<textarea id="custom_roles" name="custom_roles" rows="2" placeholder="e.g. Growth Analyst">{{ custom }}</textarea></label>
+    <div class="famgrid">
+      {% for f in families %}{% set info = fam_info.get(f.key, {}) %}
+      <label class="famcard {{ 'strong' if (info.score or 0) >= 40 }}">
+        <input type="checkbox" name="families" value="{{ f.key }}" {{ 'checked' if f.key in chosen_fams }}>
+        <span class="fc-top"><b>{{ f.name }}</b>{% if info.score %}<span class="match" title="Resume match">{{ info.score }}%</span>{% endif %}</span>
+        <span class="meter"><i style="width: {{ info.score or 0 }}%"></i></span>
+        <span class="small muted">{% if info.why %}From {{ info.why }}{% else %}{{ f.roles[0][0] }}, {{ f.roles[1][0] }}, {{ f.roles[2][0] }}…{% endif %}</span>
+      </label>
+      {% endfor %}
+    </div>
+    <div class="grid3">
+      <fieldset class="opts"><legend>Employment type</legend>
+        {% for o in role_type_options %}<label class="pillcheck"><input type="checkbox" name="role_types" value="{{ o }}" {{ 'checked' if o in prefs.role_types }}><span>{{ o }}</span></label>{% endfor %}
+      </fieldset>
+      <fieldset class="opts"><legend>Work mode <span class="muted">(none = any)</span></legend>
+        {% for o in work_mode_options %}<label class="pillcheck"><input type="checkbox" name="work_modes" value="{{ o }}" {{ 'checked' if o in prefs.work_modes }}><span>{{ o|capitalize }}</span></label>{% endfor %}
+      </fieldset>
+      <label class="f" for="notice">Notice period<select id="notice" name="notice_period">{% for n in notice_options %}<option {{ 'selected' if prefs.notice_period == n }}>{{ n }}</option>{% endfor %}</select></label>
+    </div>
   </section>
 
-  <section class="panel">
-    <h2>Filters</h2>
-    <div class="grid3">
-      <div style="display:grid;gap:10px;align-content:start">
+  {# ------------------------------------------------------------ step 2 #}
+  <section class="step panel" data-step="2" aria-labelledby="s2">
+    <div class="row" style="justify-content:space-between;align-items:center">
+      <div>
+        <h2 id="s2">Roles to search for</h2>
+        <p class="muted small">Suggested for the job types you picked, ranked by evidence on your resume. Ticked roles are searched and used for ranking.</p>
+      </div>
+      <div class="row"><button type="button" class="btn quiet" data-roles="all">Tick all</button><button type="button" class="btn quiet" data-roles="none">Clear</button></div>
+    </div>
+    <div id="role-list" class="rolelist" aria-live="polite">
+      {% for s in suggestions %}
+      <label class="rolerow">
+        <input type="checkbox" name="roles" value="{{ s.title }}" {{ 'checked' if s.title in chosen }}>
+        <span class="rr-main"><b>{{ s.title }}</b><span class="small muted">{{ s.reason }}</span></span>
+        <span class="rr-fam small">{{ s.family_name }}</span>
+        <span class="rr-score"><span class="mono">{{ s.score }}</span><span class="meter"><i style="width: {{ [s.score, 100]|min }}%"></i></span></span>
+      </label>
+      {% endfor %}
+    </div>
+    <label class="f" for="custom_roles">Other roles you want (one per line)<textarea id="custom_roles" name="custom_roles" rows="2" placeholder="e.g. Growth Analyst, Clinical Data Manager">{{ custom }}</textarea></label>
+  </section>
+
+  {# ------------------------------------------------------------ step 3 #}
+  <section class="step panel" data-step="3" aria-labelledby="s3">
+    <div>
+      <h2 id="s3">Any companies you'd especially like?</h2>
+      <p class="muted small">Optional. Jobs at these companies get a +5 boost and a "Preferred" tag, and we look up their public career boards so they're searched directly.</p>
+    </div>
+    <label class="f" for="pref_co">Preferred companies (one per line)<textarea id="pref_co" name="prefer_companies" rows="4" placeholder="Type any company, or tap the suggestions below">{{ (prefs.prefer_companies or [])|join('\n') }}</textarea></label>
+    <div>
+      <div class="small muted" style="margin-bottom:6px">Suggestions for the job types you picked</div>
+      <div class="chips" id="co-suggest">
+        {% for c in company_suggestions %}<button type="button" class="chip add" data-add-company="{{ c.name }}" data-family="{{ c.family }}">+ {{ c.name }}</button>{% endfor %}
+      </div>
+    </div>
+    <div class="grid2">
+      <label class="f" for="excl">Companies to leave out (one per line)<textarea id="excl" name="exclude_companies" rows="3" placeholder="Your current employer, for example">{{ (prefs.exclude_companies or [])|join('\n') }}</textarea></label>
+      <label class="f" for="exw">Leave out titles containing (one per line)<textarea id="exw" name="exclude_title_words" rows="3" placeholder="e.g. night shift, telecaller">{{ (prefs.exclude_title_words or [])|join('\n') }}</textarea></label>
+    </div>
+  </section>
+
+  {# ------------------------------------------------------------ step 4 #}
+  <section class="step panel" data-step="4" aria-labelledby="s4">
+    <h2 id="s4">Where, what level and what pay</h2>
+    <div class="grid2">
+      <fieldset class="opts"><legend>First-choice cities <span class="muted">(your main list of up to {{ prefs.bucket_size or 50 }})</span></legend>
+        {% for c in all_cities %}<label class="pillcheck"><input type="checkbox" name="primary_cities" value="{{ c }}" data-city-group="p" {{ 'checked' if c in primary }}><span>{{ c }}</span></label>{% endfor %}
+      </fieldset>
+      <fieldset class="opts"><legend>Other cities you'd consider <span class="muted">(second list)</span></legend>
+        {% for c in all_cities %}<label class="pillcheck"><input type="checkbox" name="secondary_cities" value="{{ c }}" data-city-group="s" {{ 'checked' if c in secondary }}><span>{{ c }}</span></label>{% endfor %}
+      </fieldset>
+    </div>
+    <fieldset class="opts"><legend>Seniority levels <span class="muted">(pre-set from your {{ years }} years; titles and stated experience outside these are left out)</span></legend>
+      {% for b in bands %}<label class="pillcheck tall"><input type="checkbox" name="seniority_bands" value="{{ b }}" {{ 'checked' if b in chosen_bands }}><span>{{ b }}<small>{{ band_hint[b] }}</small></span></label>{% endfor %}
+    </fieldset>
+    <div class="grid2">
+      <div style="display:grid;gap:8px;align-content:start">
         <div class="row">
-          <label class="f" for="smin">Salary from (LPA)<input id="smin" type="number" step="0.5" min="0" name="salary_min_lpa" value="{{ prefs.salary_min_lpa if prefs.salary_min_lpa is not none else '' }}" style="width:100px"></label>
-          <label class="f" for="smax">to (LPA)<input id="smax" type="number" step="0.5" min="0" name="salary_max_lpa" value="{{ prefs.salary_max_lpa if prefs.salary_max_lpa is not none else '' }}" style="width:100px"></label>
+          <label class="f" for="smin">Salary from (LPA)<input id="smin" type="number" step="0.5" min="0" name="salary_min_lpa" value="{{ prefs.salary_min_lpa if prefs.salary_min_lpa is not none else '' }}" style="width:110px"></label>
+          <label class="f" for="smax">to (LPA)<input id="smax" type="number" step="0.5" min="0" name="salary_max_lpa" value="{{ prefs.salary_max_lpa if prefs.salary_max_lpa is not none else '' }}" style="width:110px"></label>
         </div>
         <label class="check"><input type="checkbox" name="salary_hard_filter" {{ 'checked' if prefs.salary_hard_filter }}> <span>Drop jobs whose <i>stated</i> salary is outside this range</span></label>
-        <p class="small muted" style="margin:0">Jobs without a stated salary always stay in, shown as "Salary: Unknown".</p>
-        <label class="f" for="notice">Notice period<select id="notice" name="notice_period">{% for n in notice_options %}<option {{ 'selected' if prefs.notice_period == n }}>{{ n }}</option>{% endfor %}</select></label>
-        <label class="f" for="excl">Companies to exclude (one per line)<textarea id="excl" name="exclude_companies" rows="3" placeholder="Your current employer, for example">{{ (prefs.exclude_companies or [])|join('\n') }}</textarea></label>
-        <label class="f" for="exw">Leave out titles containing<textarea id="exw" name="exclude_title_words" rows="3">{{ (prefs.exclude_title_words or [])|join('\n') }}</textarea></label>
+        <p class="small muted" style="margin:0">Jobs that don't state a salary always stay in, shown as "Salary: Unknown".</p>
+        <label class="check"><input type="checkbox" name="use_llm_summary" {{ 'checked' if prefs.use_llm_summary }}> <span>Offer short written fit summaries (if the site has an AI key)</span></label>
       </div>
-      <div style="display:grid;gap:10px;align-content:start">
-        <fieldset class="panel" style="padding:10px"><legend class="small muted">Delhi NCR cities</legend>
-          {% for c in all_cities.ncr %}<label class="check"><input type="checkbox" name="ncr_cities" value="{{ c }}" {{ 'checked' if c in prefs.ncr_cities }}> {{ c }}</label>{% endfor %}</fieldset>
-        <fieldset class="panel" style="padding:10px"><legend class="small muted">Other metros</legend>
-          {% for c in all_cities.metro %}<label class="check"><input type="checkbox" name="metro_cities" value="{{ c }}" {{ 'checked' if c in prefs.metro_cities }}> {{ c }}</label>{% endfor %}</fieldset>
-        <fieldset class="panel" style="padding:10px"><legend class="small muted">Seniority band</legend>
-          {% for o in seniority_options %}<label class="check"><input type="checkbox" name="seniority" value="{{ o }}" {{ 'checked' if o in prefs.seniority }}> {{ o }}</label>{% endfor %}</fieldset>
-        <fieldset class="panel" style="padding:10px"><legend class="small muted">Role types</legend>
-          {% for o in role_type_options %}<label class="check"><input type="checkbox" name="role_types" value="{{ o }}" {{ 'checked' if o in prefs.role_types }}> {{ o }}</label>{% endfor %}</fieldset>
-      </div>
-      <div style="display:grid;gap:10px;align-content:start">
-        <fieldset class="panel" style="padding:10px"><legend class="small muted">Prefer industries</legend>
-          {% for o in industries %}<label class="check"><input type="checkbox" name="prefer_industries" value="{{ o }}" {{ 'checked' if o in prefs.prefer_industries }}> {{ o }}</label>{% endfor %}</fieldset>
-        <fieldset class="panel" style="padding:10px"><legend class="small muted">Avoid industries</legend>
-          {% for o in industries %}<label class="check"><input type="checkbox" name="avoid_industries" value="{{ o }}" {{ 'checked' if o in prefs.avoid_industries }}> {{ o }}</label>{% endfor %}</fieldset>
-        <label class="check"><input type="checkbox" name="use_llm_summary" {{ 'checked' if prefs.use_llm_summary }}> <span>Offer short written fit summaries (only if the site has an AI key)</span></label>
+      <div class="grid2 tight">
+        <fieldset class="opts compact"><legend>Prefer industries</legend>
+          {% for o in industries %}<label class="pillcheck"><input type="checkbox" name="prefer_industries" value="{{ o }}" {{ 'checked' if o in prefs.prefer_industries }}><span>{{ o }}</span></label>{% endfor %}</fieldset>
+        <fieldset class="opts compact"><legend>Avoid industries</legend>
+          {% for o in industries %}<label class="pillcheck neg"><input type="checkbox" name="avoid_industries" value="{{ o }}" {{ 'checked' if o in prefs.avoid_industries }}><span>{{ o }}</span></label>{% endfor %}</fieldset>
       </div>
     </div>
   </section>
-  <div><button class="btn big" type="submit">Save and show my jobs</button></div>
+
+  <div class="wizard-nav">
+    <button type="button" class="btn quiet" data-prev>Back</button>
+    <span class="spacer"></span>
+    <button type="submit" class="btn ghost save-any">Save and show my jobs</button>
+    <button type="button" class="btn big" data-next>Next</button>
+    <button type="submit" class="btn big save-last">Save and show my jobs</button>
+  </div>
 </form>
 {% endblock %}

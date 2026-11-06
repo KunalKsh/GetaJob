@@ -36,7 +36,8 @@
     {% if j.new_since_refresh %}<span class="pill new">New since last refresh</span>{% endif %}
     {% if j.reposted %}<span class="pill amber" title="{{ j.repost_note }}">Reposted</span>{% endif %}
     {% for p in portals_of(j) %}<span class="pill src">{{ p }}</span>{% endfor %}
-    {% if j.resume_variant %}<span class="pill cv" title="Which of your four resume versions to send">Send: {{ j.resume_variant }} resume</span>{% endif %}
+    {% if det.preferred %}<span class="pill pref">★ Preferred company</span>{% endif %}
+    {% if j.resume_variant %}<span class="pill cv" title="Which of your resume versions fits this job best">Send: {{ j.resume_variant }}</span>{% endif %}
     {% for fl in j.flags or [] %}<span class="pill {{ 'red' if 'payment' in fl or 'personal email' in fl else 'grey' }}">{{ fl }}</span>{% endfor %}
   </div>
   <details class="why">

@@ -14,22 +14,8 @@ from rapidfuzz import fuzz
 from core.config import EMPLOYERS_PATH, FIXTURES_DIR, IST
 from core.dedup import norm_title
 from core.http import Http
-from core.locations import map_location
-from core.relevance import is_relevant
-
-RELEVANT_TITLE = re.compile(
-    r"analy|insight|business intelligence|\bbi\b|strateg|data scien|decision scien|reporting|\bmis\b|growth|"
-    r"consultant|pricing|revenue operations|business operations|bizops|market intelligence|research", re.I)
-IRRELEVANT_TITLE = re.compile(
-    r"engineer|developer|architect|devops|programmer|sdet|\bqa\b|tester|testing|quality assurance|"
-    r"security analyst|soc\b|cyber|penetration|network|infrastructure|service desk|"
-    r"sales executive|telecaller|tele-?sales|customer (?:care|support|service)|voice|call cent|"
-    r"accountant|accounts payable|accounts receivable|payroll|\bap\b|\bar\b|r2r|p2p|o2c|i2c|"
-    r"recruiter|talent acquisition|nurse|teacher|legal|lawyer|paralegal|\bkyc\b|\baml\b|"
-    r"workday|servicenow|salesforce (?:developer|admin)|sap (?:abap|basis|fico)|"
-    r"graphic|designer|motion|content writer|copywriter|driver|technician|mechanic|"
-    r"travel consultant|underwriting associate|claims (?:associate|processor)", re.I)
-
+from core.locations import NCR_CITIES, expand, map_location
+from core.relevance import is_relevant, relevant_any
 
 def employers(demo: bool = False) -> dict:
     """Company list. The admin can edit it on the site (kept in the database); otherwise config/employers.yaml.
@@ -39,9 +25,16 @@ def employers(demo: bool = False) -> dict:
     else:
         text = employers_text()
     try:
-        return yaml.safe_load(text) or {}
+        data = yaml.safe_load(text) or {}
     except yaml.YAMLError:
-        return {}
+        data = {}
+    if not demo:
+        from .discover import discovered_entries
+        from core.dedup import norm_company
+        for ats, rows in discovered_entries().items():
+            have = {norm_company(e.get("name", "")) for e in data.get(ats) or []}
+            data[ats] = list(data.get(ats) or []) + [r for r in rows if norm_company(r["name"]) not in have]
+    return data
 
 
 def employers_text() -> str:
@@ -124,7 +117,23 @@ class Ctx:
 
     @property
     def cities(self) -> list[str]:
-        return list(self.prefs.get("ncr_cities") or []) + list(self.prefs.get("metro_cities") or [])
+        p = self.prefs
+        if p.get("cities") is not None:
+            return list(p["cities"])
+        out = list(p.get("primary_cities") or p.get("ncr_cities") or []) + \
+            list(p.get("secondary_cities") or p.get("metro_cities") or [])
+        return list(dict.fromkeys(out))
+
+    @property
+    def search_cities(self) -> list[str]:
+        """Cities to send to job-search APIs (remote roles are found through every city's results)."""
+        return [c for c in self.cities if c != "Remote"]
+
+    @property
+    def search_places(self) -> list[str]:
+        """Like search_cities, but the NCR cities collapse to one "Delhi NCR" search."""
+        cs = self.search_cities
+        return (["Delhi NCR"] if set(cs) & set(NCR_CITIES) else []) + [c for c in cs if c not in NCR_CITIES]
 
     def error(self, source: str, msg: str):
         with self._lock:
@@ -137,11 +146,16 @@ class Ctx:
             self.notes[source] = msg
 
     def relevant_title(self, title: str) -> bool:
-        return is_relevant(title, self.roles)
+        specs = self.prefs.get("relevance_specs")
+        if specs:
+            return relevant_any(title, specs)
+        return is_relevant(title, self.roles, self.prefs.get("families"))
 
     def target_location(self, raw: str) -> bool:
         loc = map_location(raw or "")
-        allowed = set(self.cities) | ({"Delhi NCR"} if self.prefs.get("ncr_cities") else set())
+        allowed = expand(self.cities)
+        if "Remote" in allowed and loc["remote"]:
+            return True
         return any(c in allowed for c in loc["cities"])
 
     def fixture(self, name: str):

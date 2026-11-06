@@ -1,6 +1,8 @@
 """Excel and CSV exports."""
 from __future__ import annotations
 
+import re
+
 import csv
 import io
 
@@ -9,7 +11,6 @@ from openpyxl.styles import Alignment, Font, PatternFill
 from openpyxl.utils import get_column_letter
 
 from .dates import age_days, tier_for_age, today_ist
-from .locations import BUCKET_LABEL, METRO, NCR
 from .normalize import FIELDS
 from .verify import STATUS_LABEL
 
@@ -67,14 +68,19 @@ def _sheet(ws, title: str, jobs: list[dict], tracker: dict):
     ws.auto_filter.ref = ws.dimensions
 
 
+def _sheet_name(label: str, fallback: str = "First choice") -> str:
+    name = re.sub(r"[\[\]:*?/\\]", " ", label or "").strip()[:31]
+    return name or fallback
+
+
 def top100_xlsx(buckets: dict, tracker: dict) -> bytes:
     wb = Workbook()
-    _sheet(wb.active, "Delhi NCR", buckets[NCR]["jobs"], tracker)
-    _sheet(wb.create_sheet(), "Other metros", buckets[METRO]["jobs"], tracker)
+    _sheet(wb.active, _sheet_name(buckets["primary"]["label"]), buckets["primary"]["jobs"], tracker)
+    _sheet(wb.create_sheet(), _sheet_name(buckets["secondary"]["label"], "Other cities"), buckets["secondary"]["jobs"], tracker)
     info = wb.create_sheet("About")
     info.append(["Bucket", "Postings", "Note"])
-    for b in (NCR, METRO):
-        info.append([BUCKET_LABEL[b], buckets[b]["count"], buckets[b]["shortfall"] or "Full list of the strongest, freshest verified postings"])
+    for b in ("primary", "secondary"):
+        info.append([buckets[b]["label"], buckets[b]["count"], buckets[b]["shortfall"] or "Full list of the strongest, freshest verified postings"])
     buf = io.BytesIO()
     wb.save(buf)
     return buf.getvalue()

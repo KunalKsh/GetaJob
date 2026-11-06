@@ -17,7 +17,7 @@ API_CITY = {"Gurugram": "Gurgaon", "Noida": "Noida", "Delhi": "Delhi", "Bengalur
 
 def _pairs(ctx: Ctx, limit: int) -> list[tuple[str, str]]:
     """(query, city) pairs: every role in every city, highest-priority roles first, capped by the budget."""
-    pairs = [(q, c) for q in ctx.role_queries for c in ctx.cities]
+    pairs = [(q, c) for q in ctx.role_queries for c in ctx.search_cities]
     return pairs[:max(0, limit)]
 
 
@@ -202,7 +202,7 @@ class JSearch(Source):
 
 
 def _pairs_google(ctx: Ctx, budget: int) -> list[tuple[str, str]]:
-    places = (["Delhi NCR"] if ctx.prefs.get("ncr_cities") else []) + list(ctx.prefs.get("metro_cities") or [])
+    places = ctx.search_places
     pairs = [(q, p) for q in ctx.role_queries for p in places]
     return pairs[:max(0, budget)]
 

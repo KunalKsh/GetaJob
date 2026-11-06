@@ -3,25 +3,43 @@
 {% block title %}Dashboard · {{ APP_NAME }}{% endblock %}
 {% block content %}
 {% if saved %}
-<div class="notice">Saved. Your lists below are re-ranked for your roles and filters. Roles you just added are searched in the next update{% if last_run %} (jobs last updated {{ fmt_dt(last_run.finished) }}){% endif %}.</div>
+<div class="notice">Saved. Your lists below are re-ranked for your preferences. Roles you just added are searched in the next update{% if last_run %} (jobs last updated {{ fmt_dt(last_run.finished) }}){% endif %}.</div>
 {% endif %}
 {% if total_jobs == 0 %}
 <div class="notice warn">No jobs in the pool yet. The first update runs automatically{% if user.role == 'admin' %}, or press <b>Refresh now</b>{% endif %}. It takes a few minutes.</div>
 {% endif %}
 
-<div class="row" style="justify-content: space-between; align-items: center">
-  <div class="tabs" role="tablist">
-    {% for key in ['ncr', 'metro'] %}
-    <a role="tab" class="tab {{ 'on' if tab == key }}" href="/dashboard?tab={{ key }}" aria-selected="{{ 'true' if tab == key else 'false' }}">
-      <b>{{ BUCKET_LABEL[key] }}</b>
-      <span class="count">{{ buckets[key].count }} of {{ prefs.bucket_size }} · verified, ≤{{ prefs.max_age_days }} days</span>
-    </a>
-    {% endfor %}
+<div class="pagehead">
+  <div>
+    <p class="eyebrow">{{ fam_names|join(' · ') or 'Your roles' }} · {{ (prefs.roles or [])|length }} role{{ 's' if (prefs.roles or [])|length != 1 }} · {{ (prefs.seniority_bands or ['any level'])|join(', ') }}</p>
+    <h1>Your matched jobs</h1>
   </div>
   <div class="row">
-    <a class="btn ghost" href="/export/top100.xlsx">Export top 100 to Excel</a>
+    <a class="btn quiet" href="/profile">Edit preferences</a>
+    <a class="btn ghost" href="/export/top100.xlsx">Export to Excel</a>
     {% if review_count %}<a class="btn quiet" href="/review">{{ review_count }} need review</a>{% endif %}
   </div>
+</div>
+
+<div class="tabs" role="tablist">
+  {% for key in ['primary', 'secondary'] %}
+  <a role="tab" class="tab {{ 'on' if tab == key }}" href="/dashboard?tab={{ key }}" aria-selected="{{ 'true' if tab == key else 'false' }}">
+    <span class="small muted">{{ 'First-choice cities' if key == 'primary' else 'Other cities' }}</span>
+    <b>{{ buckets[key].label }}</b>
+    <span class="count">{{ buckets[key].count }} of {{ prefs.bucket_size }} · verified, ≤{{ prefs.max_age_days }} days</span>
+  </a>
+  {% endfor %}
+</div>
+
+<div class="stats">
+  <div class="stat"><span class="k">In this list</span><b>{{ bucket.count }}</b></div>
+  <div class="stat"><span class="k">Posted ≤3 days</span><b>{{ stats.fresh }}</b></div>
+  <div class="stat"><span class="k">New since last update</span><b>{{ stats.new }}</b></div>
+  <div class="stat"><span class="k">Average fit</span><b>{{ stats.avg_fit }}</b></div>
+  <div class="stat"><span class="k">At preferred companies</span><b>{{ stats.preferred }}</b></div>
+  <div class="stat"><span class="k">You're tracking</span><b>{{ stats.applied }}</b></div>
+  {% if stats.gaps %}<div class="stat wide"><span class="k">Skills these jobs ask for most that your resume doesn't show</span>
+    <span>{% for g, n in stats.gaps %}<span class="skill gap">{{ g }} · {{ n }}</span>{% endfor %}</span></div>{% endif %}
 </div>
 
 {% if bucket.shortfall %}<div class="notice warn">{{ bucket.shortfall }} Nothing stale or unverified is added to fill the gap.</div>{% endif %}
@@ -35,6 +53,7 @@
 
 <form class="filters" method="get" action="/dashboard">
   <input type="hidden" name="tab" value="{{ tab }}">
+  <label class="f grow" for="f-q">Search<input id="f-q" type="search" name="q" value="{{ f.q }}" placeholder="Title, company or skill"></label>
   {% if f.tier %}<input type="hidden" name="tier" value="{{ f.tier }}">{% endif %}
   <label class="f" for="f-city">City<select id="f-city" name="city"><option value="">All</option>{% for c in cities %}<option {{ 'selected' if f.city == c }}>{{ c }}</option>{% endfor %}</select></label>
   <label class="f" for="f-portal">Source<select id="f-portal" name="portal"><option value="">All</option>{% for p in portals %}<option {{ 'selected' if f.portal == p }}>{{ p }}</option>{% endfor %}</select></label>
@@ -42,6 +61,7 @@
   <label class="f" for="f-salary">Salary<select id="f-salary" name="salary"><option value="">Any</option><option value="stated" {{ 'selected' if f.salary=='stated' }}>Stated</option><option value="unknown" {{ 'selected' if f.salary=='unknown' }}>Unknown</option></select></label>
   <label class="f" for="f-mode">Work mode<select id="f-mode" name="mode"><option value="">Any</option>{% for m in ['onsite','hybrid','remote','unknown'] %}<option {{ 'selected' if f.mode == m }}>{{ m }}</option>{% endfor %}</select></label>
   <label class="f" for="f-status">Verification<select id="f-status" name="status"><option value="">All counted</option><option value="verified" {{ 'selected' if f.status=='verified' }}>Checked automatically</option><option value="manual" {{ 'selected' if f.status=='manual' }}>Verified by you</option></select></label>
+  <label class="check" style="align-self:center"><input type="checkbox" name="preferred" value="1" {{ 'checked' if f.preferred }}> Preferred companies only</label>
   <label class="f" for="f-fit">Min fit<input id="f-fit" type="number" name="min_fit" min="0" max="100" step="5" value="{{ f.min_fit or '' }}" style="width:80px"></label>
   <label class="f" for="f-sort">Sort<select id="f-sort" name="sort">
     <option value="tier" {{ 'selected' if f.sort=='tier' }}>Freshness tier, then fit</option>

@@ -86,9 +86,9 @@ def test_full_demo_refresh_offline(admin):
     assert all(j.get("fit_score") is not None for j in jobs if j.get("bucket") and j["status"] == "verified")
     view = {**db.get_settings(), **db.get_prefs(uid)}
     b = select_buckets(jobs, view)
-    assert 0 < b["ncr"]["count"] < 50 and b["ncr"]["shortfall"]
-    assert not any(j["company"] == "Sample Excluded Co" for j in b["ncr"]["jobs"])
-    assert all(j["status"] == "verified" for j in b["ncr"]["jobs"] + b["metro"]["jobs"])
+    assert 0 < b["primary"]["count"] < 50 and b["primary"]["shortfall"]
+    assert not any(j["company"] == "Sample Excluded Co" for j in b["primary"]["jobs"])
+    assert all(j["status"] == "verified" for j in b["primary"]["jobs"] + b["secondary"]["jobs"])
     n = len(db.all_jobs())
     pipeline.run_refresh("test")
     assert len(db.all_jobs()) == n  # a second refresh adds no duplicates

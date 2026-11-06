@@ -49,13 +49,17 @@
         <div>Based in {{ profile.location or 'unknown' }} · Industries: {{ (profile.industries or [])|join(', ') or 'not detected' }}</div>
         {% if profile.contact_removed %}<div class="muted">Phone, email and links are left out of your saved profile.</div>{% endif %}
       </div>
+      {% if profile.families %}
+      <div class="small muted">Kinds of jobs your resume points to</div>
+      <div class="chips">{% for f in profile.families[:5] if f.score >= 25 %}<span class="chip static">{{ f.name }} · {{ f.score }}%</span>{% endfor %}</div>
+      {% endif %}
       <div class="small muted">Skills found ({{ profile.skills|length }})</div>
       <div>{% for s in profile.skills %}<span class="skill have">{{ s }}</span>{% endfor %}</div>
       {% if profile.variants and profile.variants|length > 1 %}
       <div class="small muted">Versions</div>
       <ul class="small">{% for v in profile.variants %}<li><b>{{ v.label }}</b> · focus: {{ v.focus }}</li>{% endfor %}</ul>
       {% endif %}
-      <div><a class="btn" href="/profile">Confirm roles and filters</a></div>
+      <div><a class="btn" href="/profile">Set your job preferences</a></div>
     {% else %}
       <p class="small muted">Your skills, experience and suggested roles appear here after you upload a resume.</p>
     {% endif %}
